@@ -33,7 +33,24 @@ namespace LegendaryDependencyInjection
             }
         }
         private static ModuleBuilder? _cacheModuleBuilder = null;
-        private static ModuleBuilder _module => _cacheModuleBuilder ??= _newModuleBuilder;
+        private static object _lockModule=new object();
+        private static ModuleBuilder _module
+        {
+            get
+            {
+                if (_cacheModuleBuilder == null)
+                {
+                    lock (_lockModule)
+                    {
+                        if (_cacheModuleBuilder == null)
+                        {
+                            _cacheModuleBuilder = _newModuleBuilder;
+                        }
+                    }
+                }
+                return _cacheModuleBuilder;
+            }
+        }
         
 
         private Dictionary<Type, Type> _dic = new Dictionary<Type, Type>();
