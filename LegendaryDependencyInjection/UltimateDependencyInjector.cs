@@ -127,18 +127,18 @@ namespace LegendaryDependencyInjection
     }
     public static class UltimateDependencyInjectorExtensions
     {
-        public static IServiceCollection AddLazyDependencyInjector(this IServiceCollection serviecs)
+        public static IServiceCollection AddUltimateDependencyInjector(this IServiceCollection serviecs)
         {
             serviecs.TryAddSingleton<UltimateDependencyInjector>();
             return serviecs;
         }
-        private static UltimateDependencyInjector GetLazyDependencyInjector(IServiceProvider sp)
+        private static UltimateDependencyInjector GetUltimateDependencyInjector(IServiceProvider sp)
         {
             return sp.GetRequiredService<UltimateDependencyInjector>();
         }
         private static TImplementation GetService<TImplementation>(IServiceProvider sp) where TImplementation : class
         {
-            return GetLazyDependencyInjector(sp).GetService<TImplementation>();
+            return GetUltimateDependencyInjector(sp).GetService<TImplementation>();
         }
         public static void AddLazyScoped<TService, TImplementation>(this IServiceCollection serviecs) where TService : class where TImplementation : class, TService
         {
