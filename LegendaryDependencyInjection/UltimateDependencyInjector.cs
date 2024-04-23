@@ -2,6 +2,7 @@
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.DependencyInjection;
+using System.Reflection.Metadata.Ecma335;
 
 namespace LegendaryDependencyInjection
 {
@@ -11,8 +12,8 @@ namespace LegendaryDependencyInjection
         public static Func<IServiceCollection?>? GetInjectedServices { get; set; }
         public bool HasInjected(Type type)
         {
-            return _dic.ContainsKey(type) 
-                    ||( GetInjectedServices?.Invoke()?.Any(s => s.ServiceType == type) ?? false);
+            return _dic.ContainsKey(type)
+                    || (GetInjectedServices?.Invoke()?.Any(s => s.ServiceType == type) ?? false);
         }
         public static T? GetServiceInProvider<T>() where T : class
         {
@@ -22,6 +23,18 @@ namespace LegendaryDependencyInjection
         {
             return GetProviderFunc?.Invoke()?.GetService(type);
         }
+        private static ModuleBuilder _newModuleBuilder {
+            get
+            {
+                var assemblyName = new AssemblyName("LegendaryDependencyInjection.Assembly");
+                var assembly = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
+                var module = assembly.DefineDynamicModule("LegendaryDependencyInjection.Module");
+                return module;
+            }
+        }
+        private static ModuleBuilder? _cacheModuleBuilder = null;
+        private static ModuleBuilder _module => _cacheModuleBuilder ??= _newModuleBuilder;
+        
 
         private Dictionary<Type, Type> _dic = new Dictionary<Type, Type>();
         private object Create(Type type)
@@ -76,10 +89,8 @@ namespace LegendaryDependencyInjection
                     _dic[type] = type;
                     return (T)Create(_dic[type]);
                 }
-                var assemblyName = new AssemblyName("LegendaryDependencyInjection.Assembly");
-                var assembly = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
-                var module = assembly.DefineDynamicModule("LegendaryDependencyInjection.Module");
-                var builder = module.DefineType($"{type.Name}_Lazy_{Guid.NewGuid()}", TypeAttributes.Public, type);
+                
+                var builder = _module.DefineType($"{type.Name}_Lazy_{Guid.NewGuid()}", TypeAttributes.Public, type);
                 foreach (var prop in props.AsParallel())
                 {
                     var methodBuilder = builder.DefineMethod($"get_{prop.Name}", MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.Virtual, prop.PropertyType, Type.EmptyTypes);
