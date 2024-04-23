@@ -76,9 +76,9 @@ namespace LegendaryDependencyInjection
                     _dic[type] = type;
                     return (T)Create(_dic[type]);
                 }
-                var assemblyName = new AssemblyName("LazyDependencyInjector.Assembly");
+                var assemblyName = new AssemblyName("LegendaryDependencyInjection.Assembly");
                 var assembly = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
-                var module = assembly.DefineDynamicModule("LazyDependencyInjector.Module");
+                var module = assembly.DefineDynamicModule("LegendaryDependencyInjection.Module");
                 var builder = module.DefineType($"{type.Name}_Lazy_{Guid.NewGuid()}", TypeAttributes.Public, type);
                 foreach (var prop in props.AsParallel())
                 {
