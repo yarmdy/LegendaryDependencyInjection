@@ -10,9 +10,10 @@ namespace LegendaryDependencyInjection
         public static Func<IServiceProvider?>? GetProviderFunc { get; set; }
         public static Func<IServiceCollection?>? GetInjectedServices { get; set; }
 
-        public static bool HasInjected(Type type)
+        public bool HasInjected(Type type)
         {
-            return GetInjectedServices?.Invoke()?.Any(s => s.ServiceType == type) ?? false;
+            return _dic.ContainsKey(type) 
+                    ||( GetInjectedServices?.Invoke()?.Any(s => s.ServiceType == type) ?? false);
         }
         public static T? GetServiceInProvider<T>() where T : class
         {
@@ -146,11 +147,11 @@ namespace LegendaryDependencyInjection
         }
         public static void AddLazySingleton<TService, TImplementation>(this IServiceCollection serviecs) where TService : class where TImplementation : class, TService
         {
-            serviecs.AddScoped<TService, TImplementation>(GetService<TImplementation>);
+            serviecs.AddSingleton<TService, TImplementation>(GetService<TImplementation>);
         }
         public static void AddLazyTransient<TService, TImplementation>(this IServiceCollection serviecs) where TService : class where TImplementation : class, TService
         {
-            serviecs.AddScoped<TService, TImplementation>(GetService<TImplementation>);
+            serviecs.AddTransient<TService, TImplementation>(GetService<TImplementation>);
         }
 
         public static void AddLazyScoped<TImplementation>(this IServiceCollection serviecs) where TImplementation : class
@@ -159,11 +160,11 @@ namespace LegendaryDependencyInjection
         }
         public static void AddLazySingleton<TImplementation>(this IServiceCollection serviecs) where TImplementation : class
         {
-            serviecs.AddScoped(GetService<TImplementation>);
+            serviecs.AddSingleton(GetService<TImplementation>);
         }
         public static void AddLazyTransient<TImplementation>(this IServiceCollection serviecs) where TImplementation : class
         {
-            serviecs.AddScoped(GetService<TImplementation>);
+            serviecs.AddTransient(GetService<TImplementation>);
         }
     }
 }
