@@ -9,7 +9,6 @@ namespace LegendaryDependencyInjection
     {
         public static Func<IServiceProvider?>? GetProviderFunc { get; set; }
         public static Func<IServiceCollection?>? GetInjectedServices { get; set; }
-
         public bool HasInjected(Type type)
         {
             return _dic.ContainsKey(type) 
