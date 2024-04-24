@@ -10,10 +10,47 @@ namespace LegendaryDependencyInjection
     {
         public static Func<IServiceProvider?>? GetProviderFunc { get; set; }
         public static Func<IServiceCollection?>? GetInjectedServices { get; set; }
+
+        private static bool IsEnumerable(Type type)
+        {
+            return type.IsGenericType && !type.IsGenericTypeDefinition && typeof(IEnumerable<>) == type.GetGenericTypeDefinition();
+        }
+        private static bool isInjectType(Type source, Type target)
+        {
+            List<Type> typeList = new List<Type> { target };
+            while (typeList.Count > 0)
+            {
+                Type last = typeList[^1];
+                typeList.Remove(last);
+
+                if (source == last)
+                {
+                    return true;
+                }
+                if (source.IsAssignableFrom(last))
+                {
+                    return true;
+                }
+                if (last.BaseType != null)
+                {
+                    typeList.Add(last.BaseType);
+                }
+                if (last.IsGenericType && !last.IsGenericTypeDefinition)
+                {
+                    typeList.Add(last.GetGenericTypeDefinition());
+                }
+            }
+            return false;
+        }
+
         public bool HasInjected(Type type)
         {
+            if (IsEnumerable(type))
+            {
+                type = type.GenericTypeArguments[0];
+            }
             return _dic.ContainsKey(type)
-                    || (GetInjectedServices?.Invoke()?.Any(s => s.ServiceType == type) ?? false);
+                    || (GetInjectedServices?.Invoke()?.Any(s => isInjectType(s.ServiceType, type)) ?? false);
         }
         public static T? GetServiceInProvider<T>() where T : class
         {
@@ -65,7 +102,7 @@ namespace LegendaryDependencyInjection
             foreach (ConstructorInfo constructor in constructors.OrderByDescending(a => a.GetParameters().Length))
             {
                 ParameterInfo[] parameters = constructor.GetParameters();
-                List<ParameterInfo> list = parameters.Where(a => a.ParameterType.IsClass && HasInjected(a.ParameterType)).ToList();
+                List<ParameterInfo> list = parameters.Where(a => (a.ParameterType.IsClass || a.ParameterType.IsInterface) && HasInjected(a.ParameterType)).ToList();
                 if (list.Count != parameters.Length)
                 {
                     continue;
@@ -104,7 +141,7 @@ namespace LegendaryDependencyInjection
                     _dic[type] = type;
                     return Create(_dic[type]);
                 }
-                IEnumerable<PropertyInfo> props = type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.SetProperty | BindingFlags.GetProperty).Where(a => a.GetMethod!.IsVirtual && a.PropertyType.IsClass && HasInjected(a.PropertyType));
+                IEnumerable<PropertyInfo> props = type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.SetProperty | BindingFlags.GetProperty).Where(a => a.GetMethod!.IsVirtual && (a.PropertyType.IsClass || a.PropertyType.IsInterface) && HasInjected(a.PropertyType));
                 if (props.Count() <= 0)
                 {
                     _dic[type] = type;
