@@ -182,25 +182,25 @@ namespace LegendaryDependencyInjection
         {
             return sp.GetRequiredService<UltimateDependencyInjector>();
         }
-        private static object GetService(IServiceProvider sp,Type implementation)
-        {
-            return GetUltimateDependencyInjector(sp).GetService(implementation);
-        }
         private static TImplementation GetService<TImplementation>(IServiceProvider sp) where TImplementation : class
         {
             return (TImplementation)GetService(sp,typeof(TImplementation));
         }
+        private static object GetService(IServiceProvider sp,Type implementation)
+        {
+            return GetUltimateDependencyInjector(sp).GetService(implementation);
+        }
         public static void AddLazyScoped<TService, TImplementation>(this IServiceCollection serviecs) where TService : class where TImplementation : class, TService
         {
-            serviecs.AddScoped<TService, TImplementation>(GetService<TImplementation>);
+            AddLazyScoped(serviecs,typeof(TService),typeof(TImplementation));
         }
         public static void AddLazySingleton<TService, TImplementation>(this IServiceCollection serviecs) where TService : class where TImplementation : class, TService
         {
-            serviecs.AddSingleton<TService, TImplementation>(GetService<TImplementation>);
+            AddLazySingleton(serviecs, typeof(TService), typeof(TImplementation));
         }
         public static void AddLazyTransient<TService, TImplementation>(this IServiceCollection serviecs) where TService : class where TImplementation : class, TService
         {
-            serviecs.AddTransient<TService, TImplementation>(GetService<TImplementation>);
+            AddLazyTransient(serviecs, typeof(TService), typeof(TImplementation));
         }
         public static void AddLazyScoped(this IServiceCollection serviecs,Type service,Type implementation) 
         {
