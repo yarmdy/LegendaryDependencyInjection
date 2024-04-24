@@ -70,7 +70,7 @@ namespace LegendaryDependencyInjection
                 {
                     continue;
                 }
-                object[] args = list.Select(a => GetServiceInProvider(a.ParameterType)).Where(a => a != null).ToArray();
+                object?[]? args = list.Select(a => GetServiceInProvider(a.ParameterType)).Where(a => a != null).ToArray();
                 if (args.Length != parameters.Length)
                 {
                     continue;
