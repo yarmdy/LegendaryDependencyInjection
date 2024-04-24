@@ -2,7 +2,7 @@
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.DependencyInjection;
-using System.Reflection.Metadata.Ecma335;
+using Microsoft.AspNetCore.Mvc.Controllers;
 
 namespace LegendaryDependencyInjection
 {
@@ -23,17 +23,18 @@ namespace LegendaryDependencyInjection
         {
             return GetProviderFunc?.Invoke()?.GetService(type);
         }
-        private static ModuleBuilder _newModuleBuilder {
+        private static ModuleBuilder _newModuleBuilder
+        {
             get
             {
-                var assemblyName = new AssemblyName("LegendaryDependencyInjection.Assembly");
-                var assembly = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
-                var module = assembly.DefineDynamicModule("LegendaryDependencyInjection.Module");
+                AssemblyName assemblyName = new AssemblyName("LegendaryDependencyInjection.Assembly");
+                AssemblyBuilder assembly = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
+                ModuleBuilder module = assembly.DefineDynamicModule("LegendaryDependencyInjection.Module");
                 return module;
             }
         }
-        private static ModuleBuilder? _cacheModuleBuilder = null;
-        private static object _lockModule=new object();
+        private static ModuleBuilder? _cacheModuleBuilder;
+        private static readonly object _lockModule = new object();
         private static ModuleBuilder _module
         {
             get
@@ -51,25 +52,25 @@ namespace LegendaryDependencyInjection
                 return _cacheModuleBuilder;
             }
         }
-        
 
-        private Dictionary<Type, Type> _dic = new Dictionary<Type, Type>();
+
+        private readonly Dictionary<Type, Type> _dic = new Dictionary<Type, Type>();
         private object Create(Type type)
         {
-            var constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+            ConstructorInfo[] constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
             if (constructors.Length <= 0)
             {
                 return Activator.CreateInstance(type)!;
             }
-            foreach (var constructor in constructors.OrderByDescending(a => a.GetParameters().Length))
+            foreach (ConstructorInfo constructor in constructors.OrderByDescending(a => a.GetParameters().Length))
             {
-                var parameters = constructor.GetParameters();
-                var list = parameters.Where(a => a.ParameterType.IsClass && HasInjected(a.ParameterType)).ToList();
+                ParameterInfo[] parameters = constructor.GetParameters();
+                List<ParameterInfo> list = parameters.Where(a => a.ParameterType.IsClass && HasInjected(a.ParameterType)).ToList();
                 if (list.Count != parameters.Length)
                 {
                     continue;
                 }
-                var args = list.Select(a => GetServiceInProvider(a.ParameterType)).Where(a => a != null).ToArray();
+                object[] args = list.Select(a => GetServiceInProvider(a.ParameterType)).Where(a => a != null).ToArray();
                 if (args.Length != parameters.Length)
                 {
                     continue;
@@ -80,12 +81,15 @@ namespace LegendaryDependencyInjection
         }
         public T GetService<T>() where T : class
         {
-            var type = typeof(T);
+            return (T)GetService(typeof(T));
+        }
+        public object GetService(Type type)
+        {
             lock (_dic)
             {
                 if (_dic.ContainsKey(type))
                 {
-                    return (T)Create(_dic[type]);
+                    return Create(_dic[type]);
                 }
                 if (type.IsInterface)
                 {
@@ -98,28 +102,28 @@ namespace LegendaryDependencyInjection
                 if (type.IsSealed)
                 {
                     _dic[type] = type;
-                    return (T)Create(_dic[type]);
+                    return Create(_dic[type]);
                 }
-                var props = type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.SetProperty | BindingFlags.GetProperty).Where(a => a.GetMethod!.IsVirtual && a.PropertyType.IsClass && HasInjected(a.PropertyType));
+                IEnumerable<PropertyInfo> props = type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.SetProperty | BindingFlags.GetProperty).Where(a => a.GetMethod!.IsVirtual && a.PropertyType.IsClass && HasInjected(a.PropertyType));
                 if (props.Count() <= 0)
                 {
                     _dic[type] = type;
-                    return (T)Create(_dic[type]);
+                    return Create(_dic[type]);
                 }
-                
-                var builder = _module.DefineType($"{type.Name}_Lazy_{Guid.NewGuid()}", TypeAttributes.Public, type);
-                foreach (var prop in props.AsParallel())
+
+                TypeBuilder builder = _module.DefineType($"{type.Name}_Lazy_{Guid.NewGuid()}", TypeAttributes.Public, type);
+                foreach (PropertyInfo prop in props.AsParallel())
                 {
-                    var methodBuilder = builder.DefineMethod($"get_{prop.Name}", MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.Virtual, prop.PropertyType, Type.EmptyTypes);
-                    var il = methodBuilder.GetILGenerator();
+                    MethodBuilder methodBuilder = builder.DefineMethod($"get_{prop.Name}", MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.Virtual, prop.PropertyType, Type.EmptyTypes);
+                    ILGenerator il = methodBuilder.GetILGenerator();
                     il.Emit(OpCodes.Ldarg_0);
                     il.Emit(OpCodes.Call, type.GetMethod($"get_{prop.Name}", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)!);
                     il.Emit(OpCodes.Dup);
-                    var over = il.DefineLabel();
+                    Label over = il.DefineLabel();
                     il.Emit(OpCodes.Brtrue, over);
                     il.Emit(OpCodes.Pop);
                     il.Emit(OpCodes.Call, GetType().GetMethod("GetServiceInProvider", BindingFlags.Static | BindingFlags.Public)!.MakeGenericMethod(prop.PropertyType));
-                    var propV = il.DeclareLocal(prop.PropertyType);
+                    LocalBuilder propV = il.DeclareLocal(prop.PropertyType);
                     il.Emit(OpCodes.Stloc_0, propV);
                     il.Emit(OpCodes.Ldarg_0);
                     il.Emit(OpCodes.Ldloc_0);
@@ -128,18 +132,18 @@ namespace LegendaryDependencyInjection
 
                     il.MarkLabel(over);
                     il.Emit(OpCodes.Ret);
-                    var propertyBuilder = builder.DefineProperty(prop.Name, prop.Attributes, prop.PropertyType, Type.EmptyTypes);
+                    PropertyBuilder propertyBuilder = builder.DefineProperty(prop.Name, prop.Attributes, prop.PropertyType, Type.EmptyTypes);
                     propertyBuilder.SetGetMethod(methodBuilder);
                 }
-                var constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-                foreach (var constructor in constructors.AsParallel())
+                ConstructorInfo[] constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+                foreach (ConstructorInfo constructor in constructors.AsParallel())
                 {
-                    var types = constructor.GetParameters().Select(a => a.ParameterType).ToArray();
-                    var constructorBuilder = builder.DefineConstructor(constructor.Attributes, constructor.CallingConvention, types);
-                    var il = constructorBuilder.GetILGenerator();
+                    Type[] types = constructor.GetParameters().Select(a => a.ParameterType).ToArray();
+                    ConstructorBuilder constructorBuilder = builder.DefineConstructor(constructor.Attributes, constructor.CallingConvention, types);
+                    ILGenerator il = constructorBuilder.GetILGenerator();
 
                     il.Emit(OpCodes.Ldarg_0);
-                    var index = 0;
+                    int index = 0;
                     types.ToList().ForEach(t => {
                         il.Emit(OpCodes.Ldarg, ++index);
                     });
@@ -148,17 +152,31 @@ namespace LegendaryDependencyInjection
                 }
 
 
-                var resultType = builder.CreateType();
-                return (T)Create(resultType);
+                Type resultType = builder.CreateType();
+                return Create(resultType);
             }
         }
     }
     public static class UltimateDependencyInjectorExtensions
     {
-        public static IServiceCollection AddUltimateDependencyInjector(this IServiceCollection serviecs)
+        public static IMvcBuilder AddUltimateDependencyInjector(this IMvcBuilder builder)
         {
-            serviecs.TryAddSingleton<UltimateDependencyInjector>();
-            return serviecs;
+            builder.Services.TryAddSingleton<UltimateDependencyInjector>();
+            ControllerFeature feature = new ControllerFeature();
+            builder.PartManager.PopulateFeature(feature);
+
+            foreach (Type controller in feature.Controllers.Select(c => c.AsType()))
+            {
+                builder.Services.AddTransient(controller, a => {
+                    return a.GetRequiredService<UltimateDependencyInjector>().GetService(controller);
+                });
+            }
+
+            builder.Services.Replace(ServiceDescriptor.Transient<IControllerActivator, ServiceBasedControllerActivator>());
+
+            UltimateDependencyInjector.GetInjectedServices = () => builder.Services;
+
+            return builder;
         }
         private static UltimateDependencyInjector GetUltimateDependencyInjector(IServiceProvider sp)
         {
