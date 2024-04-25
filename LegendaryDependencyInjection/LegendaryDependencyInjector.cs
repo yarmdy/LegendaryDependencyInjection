@@ -212,54 +212,54 @@ namespace LegendaryDependencyInjection
         {
             return GetLegendaryDependencyInjector(sp).GetService(implementation);
         }
-        public static void AddLazyScoped<TService, TImplementation>(this IServiceCollection serviecs) where TService : class where TImplementation : class, TService
+        public static void AddLazyScoped<TService, TImplementation>(this IServiceCollection services) where TService : class where TImplementation : class, TService
         {
-            AddLazyScoped(serviecs, typeof(TService), typeof(TImplementation));
+            AddLazyScoped(services, typeof(TService), typeof(TImplementation));
         }
-        public static void AddLazySingleton<TService, TImplementation>(this IServiceCollection serviecs) where TService : class where TImplementation : class, TService
+        public static void AddLazySingleton<TService, TImplementation>(this IServiceCollection services) where TService : class where TImplementation : class, TService
         {
-            AddLazySingleton(serviecs, typeof(TService), typeof(TImplementation));
+            AddLazySingleton(services, typeof(TService), typeof(TImplementation));
         }
-        public static void AddLazyTransient<TService, TImplementation>(this IServiceCollection serviecs) where TService : class where TImplementation : class, TService
+        public static void AddLazyTransient<TService, TImplementation>(this IServiceCollection services) where TService : class where TImplementation : class, TService
         {
-            AddLazyTransient(serviecs, typeof(TService), typeof(TImplementation));
+            AddLazyTransient(services, typeof(TService), typeof(TImplementation));
         }
-        public static void AddLazyScoped(this IServiceCollection serviecs, Type service, Type implementation)
+        public static void AddLazyScoped(this IServiceCollection services, Type service, Type implementation)
         {
-            serviecs.AddScoped(service, sp => GetService(sp, implementation));
+            services.AddScoped(service, sp => GetService(sp, implementation));
         }
-        public static void AddLazySingleton(this IServiceCollection serviecs, Type service, Type implementation)
+        public static void AddLazySingleton(this IServiceCollection services, Type service, Type implementation)
         {
-            serviecs.AddSingleton(service, sp => GetService(sp, implementation));
+            services.AddSingleton(service, sp => GetService(sp, implementation));
         }
-        public static void AddLazyTransient(this IServiceCollection serviecs, Type service, Type implementation)
+        public static void AddLazyTransient(this IServiceCollection services, Type service, Type implementation)
         {
-            serviecs.AddTransient(service, sp => GetService(sp, implementation));
+            services.AddTransient(service, sp => GetService(sp, implementation));
         }
 
-        public static void AddLazyScoped<TImplementation>(this IServiceCollection serviecs) where TImplementation : class
+        public static void AddLazyScoped<TImplementation>(this IServiceCollection services) where TImplementation : class
         {
-            AddLazyScoped(serviecs, typeof(TImplementation));
+            AddLazyScoped(services, typeof(TImplementation));
         }
-        public static void AddLazySingleton<TImplementation>(this IServiceCollection serviecs) where TImplementation : class
+        public static void AddLazySingleton<TImplementation>(this IServiceCollection services) where TImplementation : class
         {
-            AddLazySingleton(serviecs, typeof(TImplementation));
+            AddLazySingleton(services, typeof(TImplementation));
         }
-        public static void AddLazyTransient<TImplementation>(this IServiceCollection serviecs) where TImplementation : class
+        public static void AddLazyTransient<TImplementation>(this IServiceCollection services) where TImplementation : class
         {
-            AddLazyTransient(serviecs, typeof(TImplementation));
+            AddLazyTransient(services, typeof(TImplementation));
         }
-        public static void AddLazyScoped(this IServiceCollection serviecs, Type implementation)
+        public static void AddLazyScoped(this IServiceCollection services, Type implementation)
         {
-            serviecs.AddScoped(implementation, sp => GetService(sp, implementation));
+            services.AddScoped(implementation, sp => GetService(sp, implementation));
         }
-        public static void AddLazySingleton(this IServiceCollection serviecs, Type implementation)
+        public static void AddLazySingleton(this IServiceCollection services, Type implementation)
         {
-            serviecs.AddSingleton(implementation, sp => GetService(sp, implementation));
+            services.AddSingleton(implementation, sp => GetService(sp, implementation));
         }
-        public static void AddLazyTransient(this IServiceCollection serviecs, Type implementation)
+        public static void AddLazyTransient(this IServiceCollection services, Type implementation)
         {
-            serviecs.AddTransient(implementation, sp => GetService(sp, implementation));
+            services.AddTransient(implementation, sp => GetService(sp, implementation));
         }
     }
 }
