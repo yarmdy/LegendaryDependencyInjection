@@ -198,9 +198,9 @@ namespace LegendaryDependencyInjection
             }
         }
     }
-    public static class UltimateDependencyInjectorExtensions
+    public static class LegendaryDependencyInjectorExtensions
     {
-        public static IMvcBuilder AddUltimateDependencyInjector(this IMvcBuilder builder)
+        public static IMvcBuilder AddLegendaryDependencyInjector(this IMvcBuilder builder)
         {
             builder.Services.TryAddSingleton<LegendaryDependencyInjector>();
             ControllerFeature feature = new ControllerFeature();
@@ -219,13 +219,13 @@ namespace LegendaryDependencyInjection
 
             return builder;
         }
-        private static LegendaryDependencyInjector GetUltimateDependencyInjector(IServiceProvider sp)
+        private static LegendaryDependencyInjector GetLegendaryDependencyInjector(IServiceProvider sp)
         {
             return sp.GetRequiredService<LegendaryDependencyInjector>();
         }
         private static object GetService(IServiceProvider sp, Type implementation)
         {
-            return GetUltimateDependencyInjector(sp).GetService(implementation);
+            return GetLegendaryDependencyInjector(sp).GetService(implementation);
         }
         public static void AddLazyScoped<TService, TImplementation>(this IServiceCollection serviecs) where TService : class where TImplementation : class, TService
         {
