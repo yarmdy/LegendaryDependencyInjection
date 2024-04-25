@@ -17,28 +17,13 @@ namespace LegendaryDependencyInjection
         }
         private static bool isInjectType(Type source, Type target)
         {
-            List<Type> typeList = new List<Type> { target };
-            while (typeList.Count > 0)
+            if (source == target)
             {
-                Type last = typeList[^1];
-                typeList.Remove(last);
-
-                if (source == last)
-                {
-                    return true;
-                }
-                if (source.IsAssignableFrom(last))
-                {
-                    return true;
-                }
-                if (last.BaseType != null)
-                {
-                    typeList.Add(last.BaseType);
-                }
-                if (last.IsGenericType && !last.IsGenericTypeDefinition)
-                {
-                    typeList.Add(last.GetGenericTypeDefinition());
-                }
+                return true;
+            }
+            if (target.IsGenericType && !target.IsGenericTypeDefinition)
+            {
+                return target.GetGenericTypeDefinition() == source;
             }
             return false;
         }
@@ -278,3 +263,35 @@ namespace LegendaryDependencyInjection
         }
     }
 }
+
+
+
+
+
+//private static bool isInjectType(Type source, Type target)
+//{
+//    List<Type> typeList = new List<Type> { target };
+//    while (typeList.Count > 0)
+//    {
+//        Type last = typeList[^1];
+//        typeList.Remove(last);
+
+//        if (source == last)
+//        {
+//            return true;
+//        }
+//        if (source.IsAssignableFrom(last))
+//        {
+//            return true;
+//        }
+//        if (last.BaseType != null)
+//        {
+//            typeList.Add(last.BaseType);
+//        }
+//        if (last.IsGenericType && !last.IsGenericTypeDefinition)
+//        {
+//            typeList.Add(last.GetGenericTypeDefinition());
+//        }
+//    }
+//    return false;
+//}
