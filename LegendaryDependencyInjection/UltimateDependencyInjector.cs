@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc.Controllers;
 
 namespace LegendaryDependencyInjection
 {
-    public class UltimateDependencyInjector
+    public class LegendaryDependencyInjector
     {
         public static Func<IServiceProvider?>? GetProviderFunc { get; set; }
         public static Func<IServiceCollection?>? GetInjectedServices { get; set; }
@@ -122,6 +122,10 @@ namespace LegendaryDependencyInjection
         }
         public object GetService(Type type)
         {
+            if (_dic.ContainsKey(type))
+            {
+                return Create(_dic[type]);
+            }
             lock (_dic)
             {
                 if (_dic.ContainsKey(type))
@@ -198,26 +202,26 @@ namespace LegendaryDependencyInjection
     {
         public static IMvcBuilder AddUltimateDependencyInjector(this IMvcBuilder builder)
         {
-            builder.Services.TryAddSingleton<UltimateDependencyInjector>();
+            builder.Services.TryAddSingleton<LegendaryDependencyInjector>();
             ControllerFeature feature = new ControllerFeature();
             builder.PartManager.PopulateFeature(feature);
 
             foreach (Type controller in feature.Controllers.Select(c => c.AsType()))
             {
                 builder.Services.AddTransient(controller, a => {
-                    return a.GetRequiredService<UltimateDependencyInjector>().GetService(controller);
+                    return a.GetRequiredService<LegendaryDependencyInjector>().GetService(controller);
                 });
             }
 
             builder.Services.Replace(ServiceDescriptor.Transient<IControllerActivator, ServiceBasedControllerActivator>());
 
-            UltimateDependencyInjector.GetInjectedServices = () => builder.Services;
+            LegendaryDependencyInjector.GetInjectedServices = () => builder.Services;
 
             return builder;
         }
-        private static UltimateDependencyInjector GetUltimateDependencyInjector(IServiceProvider sp)
+        private static LegendaryDependencyInjector GetUltimateDependencyInjector(IServiceProvider sp)
         {
-            return sp.GetRequiredService<UltimateDependencyInjector>();
+            return sp.GetRequiredService<LegendaryDependencyInjector>();
         }
         private static object GetService(IServiceProvider sp, Type implementation)
         {
