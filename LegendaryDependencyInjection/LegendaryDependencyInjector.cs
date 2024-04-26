@@ -9,33 +9,9 @@ namespace LegendaryDependencyInjection
     public class LegendaryDependencyInjector
     {
         public static Func<IServiceProvider?>? GetProviderFunc { get; set; }
-        public static Func<IServiceCollection?>? GetInjectedServices { get; set; }
-
-        private static bool IsEnumerable(Type type)
-        {
-            return type.IsGenericType && !type.IsGenericTypeDefinition && typeof(IEnumerable<>) == type.GetGenericTypeDefinition();
-        }
-        private static bool isInjectType(Type source, Type target)
-        {
-            if (source == target)
-            {
-                return true;
-            }
-            if (target.IsGenericType && !target.IsGenericTypeDefinition)
-            {
-                return target.GetGenericTypeDefinition() == source;
-            }
-            return false;
-        }
-
         public bool HasInjected(Type type)
         {
-            if (IsEnumerable(type))
-            {
-                type = type.GenericTypeArguments[0];
-            }
-            return _dic.ContainsKey(type)
-                    || (GetInjectedServices?.Invoke()?.Any(s => isInjectType(s.ServiceType, type)) ?? false);
+            return GetProviderFunc?.Invoke()?.GetService<IServiceProviderIsService>().IsService(type) ?? false;
         }
         public static T? GetServiceInProvider<T>() where T : class
         {
@@ -200,8 +176,6 @@ namespace LegendaryDependencyInjection
 
             builder.Services.Replace(ServiceDescriptor.Transient<IControllerActivator, ServiceBasedControllerActivator>());
 
-            LegendaryDependencyInjector.GetInjectedServices = () => builder.Services;
-
             return builder;
         }
         private static LegendaryDependencyInjector GetLegendaryDependencyInjector(IServiceProvider sp)
@@ -263,35 +237,3 @@ namespace LegendaryDependencyInjection
         }
     }
 }
-
-
-
-
-
-//private static bool isInjectType(Type source, Type target)
-//{
-//    List<Type> typeList = new List<Type> { target };
-//    while (typeList.Count > 0)
-//    {
-//        Type last = typeList[^1];
-//        typeList.Remove(last);
-
-//        if (source == last)
-//        {
-//            return true;
-//        }
-//        if (source.IsAssignableFrom(last))
-//        {
-//            return true;
-//        }
-//        if (last.BaseType != null)
-//        {
-//            typeList.Add(last.BaseType);
-//        }
-//        if (last.IsGenericType && !last.IsGenericTypeDefinition)
-//        {
-//            typeList.Add(last.GetGenericTypeDefinition());
-//        }
-//    }
-//    return false;
-//}
