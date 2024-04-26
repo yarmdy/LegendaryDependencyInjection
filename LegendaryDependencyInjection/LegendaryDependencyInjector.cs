@@ -11,7 +11,7 @@ namespace LegendaryDependencyInjection
         public static Func<IServiceProvider?>? GetProviderFunc { get; set; }
         public bool HasInjected(Type type)
         {
-            return GetProviderFunc?.Invoke()?.GetService<IServiceProviderIsService>().IsService(type) ?? false;
+            return GetProviderFunc?.Invoke()?.GetService<IServiceProviderIsService>()?.IsService(type) ?? false;
         }
         public static T? GetServiceInProvider<T>() where T : class
         {
