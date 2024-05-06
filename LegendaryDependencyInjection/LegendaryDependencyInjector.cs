@@ -9,7 +9,7 @@ namespace LegendaryDependencyInjection
     public class LegendaryDependencyInjector
     {
         public static Func<IServiceProvider?>? GetProviderFunc { get; set; }
-        public bool HasInjected(Type type)
+        public static bool HasInjected(Type type)
         {
             return GetProviderFunc?.Invoke()?.GetService<IServiceProviderIsService>()?.IsService(type) ?? false;
         }
@@ -52,8 +52,7 @@ namespace LegendaryDependencyInjection
         }
 
 
-        private readonly Dictionary<Type, Type> _dic = new Dictionary<Type, Type>();
-        private object Create(Type type)
+        private static object Create(Type type)
         {
             ConstructorInfo[] constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
             if (constructors.Length <= 0)
@@ -77,6 +76,7 @@ namespace LegendaryDependencyInjection
             }
             throw new NotImplementedException();
         }
+        private readonly Dictionary<Type, Type> _dic = new Dictionary<Type, Type>();
         public T GetService<T>() where T : class
         {
             return (T)GetService(typeof(T));
