@@ -169,9 +169,7 @@ namespace LegendaryDependencyInjection
 
             foreach (Type controller in feature.Controllers.Select(c => c.AsType()))
             {
-                builder.Services.AddTransient(controller, a => {
-                    return a.GetRequiredService<LegendaryDependencyInjector>().GetService(controller);
-                });
+                builder.Services.AddTransient(controller, a => GetService(a,controller));
             }
 
             builder.Services.Replace(ServiceDescriptor.Transient<IControllerActivator, ServiceBasedControllerActivator>());
