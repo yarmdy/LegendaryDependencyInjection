@@ -3,15 +3,25 @@ using System.Reflection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Mvc.Controllers;
+using Microsoft.AspNetCore.Http;
 
 namespace LegendaryDependencyInjection
 {
     public class LegendaryDependencyInjector
     {
-        public static Func<IServiceProvider?>? GetProviderFunc { get; set; }
-        public static bool HasInjected(Type type)
+        private static LegendaryDependencyInjector _instance = default!;
+        public LegendaryDependencyInjector(IHttpContextAccessor httpContextAccessor, IServiceProviderIsService serviceProviderIsService)
         {
-            return GetProviderFunc?.Invoke()?.GetService<IServiceProviderIsService>()?.IsService(type) ?? false;
+            _instance = this;
+            HttpContextAccessor = httpContextAccessor;
+            ServiceProviderIsService = serviceProviderIsService;
+        }
+        public IHttpContextAccessor? HttpContextAccessor { get; set; }
+        public IServiceProviderIsService ServiceProviderIsService { get; set; } = default!;
+        private static Func<IServiceProvider?>? GetProviderFunc = () => _instance?.HttpContextAccessor?.HttpContext?.RequestServices;
+        public bool HasInjected(Type type)
+        {
+            return ServiceProviderIsService.IsService(type);
         }
         public static T? GetServiceInProvider<T>() where T : class
         {
@@ -21,7 +31,7 @@ namespace LegendaryDependencyInjection
         {
             return GetProviderFunc?.Invoke()?.GetService(type);
         }
-        private static ModuleBuilder _newModuleBuilder
+        private ModuleBuilder _newModuleBuilder
         {
             get
             {
@@ -31,9 +41,9 @@ namespace LegendaryDependencyInjection
                 return module;
             }
         }
-        private static ModuleBuilder? _cacheModuleBuilder;
-        private static readonly object _lockModule = new object();
-        private static ModuleBuilder _module
+        private ModuleBuilder? _cacheModuleBuilder;
+        private readonly object _lockModule = new object();
+        private ModuleBuilder _module
         {
             get
             {
@@ -52,7 +62,7 @@ namespace LegendaryDependencyInjection
         }
 
 
-        private static object Create(Type type)
+        private object Create(Type type)
         {
             ConstructorInfo[] constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
             if (constructors.Length <= 0)
@@ -169,7 +179,7 @@ namespace LegendaryDependencyInjection
 
             foreach (Type controller in feature.Controllers.Select(c => c.AsType()))
             {
-                builder.Services.AddTransient(controller, a => GetService(a,controller));
+                builder.Services.AddTransient(controller, a => GetService(a, controller));
             }
 
             builder.Services.Replace(ServiceDescriptor.Transient<IControllerActivator, ServiceBasedControllerActivator>());
