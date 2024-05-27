@@ -275,6 +275,7 @@ namespace LegendaryDependencyInjection
             }
 
             builder.Services.Replace(ServiceDescriptor.Transient<IControllerActivator, ServiceBasedControllerActivator>());
+            builder.Services.TryAdd(ServiceDescriptor.Singleton<IHttpContextAccessor,HttpContextAccessor>());
 
             return builder;
         }
