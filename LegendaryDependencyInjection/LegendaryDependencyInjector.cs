@@ -16,20 +16,17 @@ namespace LegendaryDependencyInjection
         /// 单例 方便静态获取IHttpContextAccessor对象，以调取GetService方法
         /// </summary>
         private static LegendaryDependencyInjector _instance = default!;
-
-        private readonly IServiceProvider _services;
         /// <summary>
         /// 构造函数
         /// </summary>
         /// <param name="httpContextAccessor">依赖，用于获取服务提供者</param>
         /// <param name="serviceProviderIsService">依赖，用于判断是否可以获取服务</param>
-        public LegendaryDependencyInjector(IHttpContextAccessor httpContextAccessor, IServiceProviderIsService serviceProviderIsService,IServiceProvider serviceProvider)
+        public LegendaryDependencyInjector(IHttpContextAccessor httpContextAccessor, IServiceProviderIsService serviceProviderIsService)
         {
             //赋值
             _instance = this;
             HttpContextAccessor = httpContextAccessor;
             ServiceProviderIsService = serviceProviderIsService;
-            _services = serviceProvider;
         }
         /// <summary>
         /// http上下文访问器
@@ -145,7 +142,7 @@ namespace LegendaryDependencyInjection
             //    return Activator.CreateInstance(type, args)!;
             //}
             //throw new NotImplementedException();
-            return ActivatorUtilities.CreateInstance(_services, type);
+            return ActivatorUtilities.CreateInstance(HttpContextAccessor?.HttpContext?.RequestServices!, type);
         }
         /// <summary>
         /// 类型映射缓存
