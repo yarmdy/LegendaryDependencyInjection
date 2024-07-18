@@ -16,17 +16,20 @@ namespace LegendaryDependencyInjection
         /// 单例 方便静态获取IHttpContextAccessor对象，以调取GetService方法
         /// </summary>
         private static LegendaryDependencyInjector _instance = default!;
+
+        private readonly IServiceProvider _services;
         /// <summary>
         /// 构造函数
         /// </summary>
         /// <param name="httpContextAccessor">依赖，用于获取服务提供者</param>
         /// <param name="serviceProviderIsService">依赖，用于判断是否可以获取服务</param>
-        public LegendaryDependencyInjector(IHttpContextAccessor httpContextAccessor, IServiceProviderIsService serviceProviderIsService)
+        public LegendaryDependencyInjector(IHttpContextAccessor httpContextAccessor, IServiceProviderIsService serviceProviderIsService,IServiceProvider serviceProvider)
         {
             //赋值
             _instance = this;
             HttpContextAccessor = httpContextAccessor;
             ServiceProviderIsService = serviceProviderIsService;
+            _services = serviceProvider;
         }
         /// <summary>
         /// http上下文访问器
@@ -119,29 +122,30 @@ namespace LegendaryDependencyInjection
         private object Create(Type type)
         {
             //获取所有构造函数
-            ConstructorInfo[] constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-            //如果没有构造函数，也就是说有默认的0参数构造函数，那就直接通过反射创建对象
-            if (constructors.Length <= 0)
-            {
-                return Activator.CreateInstance(type)!;
-            }
-            //循环所有构造函数，找到参数个数和类型跟现有注入的依赖匹配的，然后再通过反射创建对象，参数试用获取的依赖填充
-            foreach (ConstructorInfo constructor in constructors.OrderByDescending(a => a.GetParameters().Length))
-            {
-                ParameterInfo[] parameters = constructor.GetParameters();
-                List<ParameterInfo> list = parameters.Where(a => (a.ParameterType.IsClass || a.ParameterType.IsInterface) && HasInjected(a.ParameterType)).ToList();
-                if (list.Count != parameters.Length)
-                {
-                    continue;
-                }
-                object?[]? args = list.Select(a => GetServiceInProvider(a.ParameterType)).Where(a => a != null).ToArray();
-                if (args.Length != parameters.Length)
-                {
-                    continue;
-                }
-                return Activator.CreateInstance(type, args)!;
-            }
-            throw new NotImplementedException();
+            //ConstructorInfo[] constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+            ////如果没有构造函数，也就是说有默认的0参数构造函数，那就直接通过反射创建对象
+            //if (constructors.Length <= 0)
+            //{
+            //    return Activator.CreateInstance(type)!;
+            //}
+            ////循环所有构造函数，找到参数个数和类型跟现有注入的依赖匹配的，然后再通过反射创建对象，参数试用获取的依赖填充
+            //foreach (ConstructorInfo constructor in constructors.OrderByDescending(a => a.GetParameters().Length))
+            //{
+            //    ParameterInfo[] parameters = constructor.GetParameters();
+            //    List<ParameterInfo> list = parameters.Where(a => (a.ParameterType.IsClass || a.ParameterType.IsInterface) && HasInjected(a.ParameterType)).ToList();
+            //    if (list.Count != parameters.Length)
+            //    {
+            //        continue;
+            //    }
+            //    object?[]? args = list.Select(a => GetServiceInProvider(a.ParameterType)).Where(a => a != null).ToArray();
+            //    if (args.Length != parameters.Length)
+            //    {
+            //        continue;
+            //    }
+            //    return Activator.CreateInstance(type, args)!;
+            //}
+            //throw new NotImplementedException();
+            return ActivatorUtilities.CreateInstance(_services, type);
         }
         /// <summary>
         /// 类型映射缓存
