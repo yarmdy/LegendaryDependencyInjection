@@ -206,7 +206,7 @@ namespace LegendaryDependencyInjection
                 //定义一个代理类型建造器
                 TypeBuilder builder = _module.DefineType($"{type.Name}_Lazy_{Guid.NewGuid()}", TypeAttributes.Public, type);
                 //循环所有属性，把属性getter方法改造为如果属性为空，就自动注入依赖，并把依赖赋值给属性
-                foreach (PropertyInfo prop in props.AsParallel())
+                foreach (PropertyInfo prop in props)
                 {
                     MethodBuilder methodBuilder = builder.DefineMethod($"get_{prop.Name}", MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.Virtual, prop.PropertyType, Type.EmptyTypes);
                     ILGenerator il = methodBuilder.GetILGenerator();
@@ -232,7 +232,7 @@ namespace LegendaryDependencyInjection
                 //获取所有构造函数
                 ConstructorInfo[] constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
                 //重写所有构造函数，模仿目标类型
-                foreach (ConstructorInfo constructor in constructors.AsParallel())
+                foreach (ConstructorInfo constructor in constructors)
                 {
                     Type[] types = constructor.GetParameters().Select(a => a.ParameterType).ToArray();
                     ConstructorBuilder constructorBuilder = builder.DefineConstructor(constructor.Attributes, constructor.CallingConvention, types);
