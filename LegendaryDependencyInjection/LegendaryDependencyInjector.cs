@@ -206,8 +206,7 @@ namespace LegendaryDependencyInjection
                 //定义一个代理类型建造器
                 TypeBuilder builder = _module.DefineType($"{type.Name}_Lazy_{Guid.NewGuid()}", TypeAttributes.Public, type);
                 //循环所有属性，把属性getter方法改造为如果属性为空，就自动注入依赖，并把依赖赋值给属性
-                foreach (PropertyInfo prop in props)
-                {
+                props.AsParallel().ForAll(prop => {
                     MethodBuilder methodBuilder = builder.DefineMethod($"get_{prop.Name}", MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.Virtual, prop.PropertyType, Type.EmptyTypes);
                     ILGenerator il = methodBuilder.GetILGenerator();
                     il.Emit(OpCodes.Ldarg_0);
@@ -228,12 +227,11 @@ namespace LegendaryDependencyInjection
                     il.Emit(OpCodes.Ret);
                     PropertyBuilder propertyBuilder = builder.DefineProperty(prop.Name, prop.Attributes, prop.PropertyType, Type.EmptyTypes);
                     propertyBuilder.SetGetMethod(methodBuilder);
-                }
+                });
                 //获取所有构造函数
                 ConstructorInfo[] constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
                 //重写所有构造函数，模仿目标类型
-                foreach (ConstructorInfo constructor in constructors)
-                {
+                constructors.AsParallel().ForAll(constructor => {
                     Type[] types = constructor.GetParameters().Select(a => a.ParameterType).ToArray();
                     ConstructorBuilder constructorBuilder = builder.DefineConstructor(constructor.Attributes, constructor.CallingConvention, types);
                     ILGenerator il = constructorBuilder.GetILGenerator();
@@ -245,8 +243,8 @@ namespace LegendaryDependencyInjection
                     });
                     il.Emit(OpCodes.Call, constructor);
                     il.Emit(OpCodes.Ret);
-                }
-
+                });
+                
                 //生成新类型为代理类
                 Type resultType = builder.CreateType();
                 //使用新类型创建对象
