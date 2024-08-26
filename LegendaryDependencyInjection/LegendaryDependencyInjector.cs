@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Http;
+using System.Collections.Concurrent;
 
 namespace LegendaryDependencyInjection
 {
@@ -147,7 +148,7 @@ namespace LegendaryDependencyInjection
         /// <summary>
         /// 类型映射缓存
         /// </summary>
-        private readonly Dictionary<Type, Type> _dic = new Dictionary<Type, Type>();
+        private readonly ConcurrentDictionary<Type, Type> _dic = new ConcurrentDictionary<Type, Type>();
         /// <summary>
         /// 获取目标类型的代理类型依赖
         /// </summary>
@@ -166,19 +167,7 @@ namespace LegendaryDependencyInjection
         /// <exception cref="ArgumentException"></exception>
         public object GetService(Type type)
         {
-            //如果存在代理类，直接创建代理类的实例
-            if (_dic.ContainsKey(type))
-            {
-                return Create(_dic[type]);
-            }
-            //锁住保证线程安全
-            lock (_dic)
-            {
-                //这里是双判断，提高效率
-                if (_dic.ContainsKey(type))
-                {
-                    return Create(_dic[type]);
-                }
+            var resType = _dic.GetOrAdd(type, type => {
                 //如果目标类型是接口，就报错
                 if (type.IsInterface)
                 {
@@ -192,16 +181,14 @@ namespace LegendaryDependencyInjection
                 //如果目标类型是封闭的，那我就把它自己当作代理类，当然也就没有了代理功能
                 if (type.IsSealed)
                 {
-                    _dic[type] = type;
-                    return Create(_dic[type]);
+                    return type;
                 }
                 //获取目标类型所有依赖和虚属性
                 IEnumerable<PropertyInfo> props = type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.SetProperty | BindingFlags.GetProperty).Where(a => a.GetMethod!.IsVirtual && (a.PropertyType.IsClass || a.PropertyType.IsInterface) && HasInjected(a.PropertyType));
                 //如果不存在，依然不需要代理，直接创建自身
                 if (props.Count() <= 0)
                 {
-                    _dic[type] = type;
-                    return Create(_dic[type]);
+                    return type;
                 }
                 //定义一个代理类型建造器
                 TypeBuilder builder = _module.DefineType($"{type.Name}_Lazy_{Guid.NewGuid()}", TypeAttributes.Public, type);
@@ -244,12 +231,14 @@ namespace LegendaryDependencyInjection
                     il.Emit(OpCodes.Call, constructor);
                     il.Emit(OpCodes.Ret);
                 });
-                
+
                 //生成新类型为代理类
                 Type resultType = builder.CreateType();
                 //使用新类型创建对象
-                return Create(resultType);
-            }
+                return resultType;
+            });
+
+            return Create(resType);
         }
     }
     /// <summary>
