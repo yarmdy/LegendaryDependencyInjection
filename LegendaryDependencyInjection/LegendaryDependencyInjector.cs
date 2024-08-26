@@ -167,78 +167,80 @@ namespace LegendaryDependencyInjection
         /// <exception cref="ArgumentException"></exception>
         public object GetService(Type type)
         {
-            var resType = _dic.GetOrAdd(type, type => {
-                //如果目标类型是接口，就报错
-                if (type.IsInterface)
-                {
-                    throw new InvalidOperationException();
-                }
-                //如果目标类型是抽象的，就报错
-                if (type.IsAbstract)
-                {
-                    throw new ArgumentException();
-                }
-                //如果目标类型是封闭的，那我就把它自己当作代理类，当然也就没有了代理功能
-                if (type.IsSealed)
-                {
-                    return type;
-                }
-                //获取目标类型所有依赖和虚属性
-                IEnumerable<PropertyInfo> props = type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.SetProperty | BindingFlags.GetProperty).Where(a => a.GetMethod!.IsVirtual && (a.PropertyType.IsClass || a.PropertyType.IsInterface) && HasInjected(a.PropertyType));
-                //如果不存在，依然不需要代理，直接创建自身
-                if (props.Count() <= 0)
-                {
-                    return type;
-                }
-                //定义一个代理类型建造器
-                TypeBuilder builder = _module.DefineType($"{type.Name}_Lazy_{Guid.NewGuid()}", TypeAttributes.Public, type);
-                //循环所有属性，把属性getter方法改造为如果属性为空，就自动注入依赖，并把依赖赋值给属性
-                props.AsParallel().ForAll(prop => {
-                    MethodBuilder methodBuilder = builder.DefineMethod($"get_{prop.Name}", MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.Virtual, prop.PropertyType, Type.EmptyTypes);
-                    ILGenerator il = methodBuilder.GetILGenerator();
-                    il.Emit(OpCodes.Ldarg_0);
-                    il.Emit(OpCodes.Call, type.GetMethod($"get_{prop.Name}", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)!);
-                    il.Emit(OpCodes.Dup);
-                    Label over = il.DefineLabel();
-                    il.Emit(OpCodes.Brtrue, over);
-                    il.Emit(OpCodes.Pop);
-                    il.Emit(OpCodes.Call, GetType().GetMethod("GetServiceInProvider", BindingFlags.Static | BindingFlags.Public)!.MakeGenericMethod(prop.PropertyType));
-                    LocalBuilder propV = il.DeclareLocal(prop.PropertyType);
-                    il.Emit(OpCodes.Stloc_0, propV);
-                    il.Emit(OpCodes.Ldarg_0);
-                    il.Emit(OpCodes.Ldloc_0);
-                    il.Emit(OpCodes.Call, type.GetMethod($"set_{prop.Name}", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)!);
-                    il.Emit(OpCodes.Ldloc_0);
+            var resType = _dic.GetOrAdd(type, getType);
+            return Create(resType);
+        }
 
-                    il.MarkLabel(over);
-                    il.Emit(OpCodes.Ret);
-                    PropertyBuilder propertyBuilder = builder.DefineProperty(prop.Name, prop.Attributes, prop.PropertyType, Type.EmptyTypes);
-                    propertyBuilder.SetGetMethod(methodBuilder);
+        private Type getType(Type type)
+        {
+            //如果目标类型是接口，就报错
+            if (type.IsInterface)
+            {
+                throw new InvalidOperationException();
+            }
+            //如果目标类型是抽象的，就报错
+            if (type.IsAbstract)
+            {
+                throw new ArgumentException();
+            }
+            //如果目标类型是封闭的，那我就把它自己当作代理类，当然也就没有了代理功能
+            if (type.IsSealed)
+            {
+                return type;
+            }
+            //获取目标类型所有依赖和虚属性
+            IEnumerable<PropertyInfo> props = type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.SetProperty | BindingFlags.GetProperty).Where(a => a.GetMethod!.IsVirtual && (a.PropertyType.IsClass || a.PropertyType.IsInterface) && HasInjected(a.PropertyType));
+            //如果不存在，依然不需要代理，直接创建自身
+            if (props.Count() <= 0)
+            {
+                return type;
+            }
+            //定义一个代理类型建造器
+            TypeBuilder builder = _module.DefineType($"{type.Name}_Lazy_{Guid.NewGuid()}", TypeAttributes.Public, type);
+            //循环所有属性，把属性getter方法改造为如果属性为空，就自动注入依赖，并把依赖赋值给属性
+            props.AsParallel().ForAll(prop => {
+                MethodBuilder methodBuilder = builder.DefineMethod($"get_{prop.Name}", MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.Virtual, prop.PropertyType, Type.EmptyTypes);
+                ILGenerator il = methodBuilder.GetILGenerator();
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Call, type.GetMethod($"get_{prop.Name}", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)!);
+                il.Emit(OpCodes.Dup);
+                Label over = il.DefineLabel();
+                il.Emit(OpCodes.Brtrue, over);
+                il.Emit(OpCodes.Pop);
+                il.Emit(OpCodes.Call, GetType().GetMethod("GetServiceInProvider", BindingFlags.Static | BindingFlags.Public)!.MakeGenericMethod(prop.PropertyType));
+                LocalBuilder propV = il.DeclareLocal(prop.PropertyType);
+                il.Emit(OpCodes.Stloc_0, propV);
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldloc_0);
+                il.Emit(OpCodes.Call, type.GetMethod($"set_{prop.Name}", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)!);
+                il.Emit(OpCodes.Ldloc_0);
+
+                il.MarkLabel(over);
+                il.Emit(OpCodes.Ret);
+                PropertyBuilder propertyBuilder = builder.DefineProperty(prop.Name, prop.Attributes, prop.PropertyType, Type.EmptyTypes);
+                propertyBuilder.SetGetMethod(methodBuilder);
+            });
+            //获取所有构造函数
+            ConstructorInfo[] constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+            //重写所有构造函数，模仿目标类型
+            constructors.AsParallel().ForAll(constructor => {
+                Type[] types = constructor.GetParameters().Select(a => a.ParameterType).ToArray();
+                ConstructorBuilder constructorBuilder = builder.DefineConstructor(constructor.Attributes, constructor.CallingConvention, types);
+                ILGenerator il = constructorBuilder.GetILGenerator();
+
+                il.Emit(OpCodes.Ldarg_0);
+                int index = 0;
+                types.ToList().ForEach(t => {
+                    il.Emit(OpCodes.Ldarg, ++index);
                 });
-                //获取所有构造函数
-                ConstructorInfo[] constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-                //重写所有构造函数，模仿目标类型
-                constructors.AsParallel().ForAll(constructor => {
-                    Type[] types = constructor.GetParameters().Select(a => a.ParameterType).ToArray();
-                    ConstructorBuilder constructorBuilder = builder.DefineConstructor(constructor.Attributes, constructor.CallingConvention, types);
-                    ILGenerator il = constructorBuilder.GetILGenerator();
-
-                    il.Emit(OpCodes.Ldarg_0);
-                    int index = 0;
-                    types.ToList().ForEach(t => {
-                        il.Emit(OpCodes.Ldarg, ++index);
-                    });
-                    il.Emit(OpCodes.Call, constructor);
-                    il.Emit(OpCodes.Ret);
-                });
-
-                //生成新类型为代理类
-                Type resultType = builder.CreateType();
-                //使用新类型创建对象
-                return resultType;
+                il.Emit(OpCodes.Call, constructor);
+                il.Emit(OpCodes.Ret);
             });
 
-            return Create(resType);
+            //生成新类型为代理类
+            Type resultType = builder.CreateType();
+            //使用新类型创建对象
+            return resultType;
         }
     }
     /// <summary>
