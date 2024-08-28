@@ -5,6 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddLazyScoped<ILazyClass, DefaultLazyClass>();
 builder.Services.AddLazyScoped<ILazyClass, FirstLazyClass>();
+builder.Services.AddScoped(typeof(IDelayFactory<>),typeof(DelayFactory<>));
 
 // Add services to the container.
 builder.Services.AddMvc().AddJsonOptions(op =>
@@ -41,4 +42,19 @@ public class FirstLazyClass : ILazyClass
     public string Name { get; set; } = "µÚÒ»";
     public int Age { get; set; } = 1;
     public int Balance { get; set; } = 1;
+}
+
+public interface IDelayFactory<T>
+{
+    T Service { get; }
+}
+public class DelayFactory<T> : IDelayFactory<T>
+{
+    private IServiceProvider serviceProvider;
+    private T? _service;
+    public DelayFactory(IServiceProvider sp)
+    {
+        serviceProvider = sp;
+    }
+    public T Service => _service ??= (T)serviceProvider.GetRequiredService(typeof(T));
 }
