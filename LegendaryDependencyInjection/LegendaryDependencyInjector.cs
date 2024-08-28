@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Http;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 
 namespace LegendaryDependencyInjection
 {
@@ -14,10 +15,6 @@ namespace LegendaryDependencyInjection
     public class LegendaryDependencyInjector
     {
         /// <summary>
-        /// 单例 方便静态获取IHttpContextAccessor对象，以调取GetService方法
-        /// </summary>
-        private static LegendaryDependencyInjector _instance = default!;
-        /// <summary>
         /// 构造函数
         /// </summary>
         /// <param name="httpContextAccessor">依赖，用于获取服务提供者</param>
@@ -25,8 +22,8 @@ namespace LegendaryDependencyInjection
         public LegendaryDependencyInjector(IHttpContextAccessor httpContextAccessor, IServiceProviderIsService serviceProviderIsService)
         {
             //赋值
-            _instance = this;
             HttpContextAccessor = httpContextAccessor;
+            staticHttpContextAccessor = httpContextAccessor;
             ServiceProviderIsService = serviceProviderIsService;
         }
         /// <summary>
@@ -37,10 +34,12 @@ namespace LegendaryDependencyInjection
         /// 判断是否可以获取服务的判断器
         /// </summary>
         public IServiceProviderIsService ServiceProviderIsService { get; set; } = default!;
+
+        private static IHttpContextAccessor staticHttpContextAccessor = default!;
         /// <summary>
         /// 获取服务提供者委托，就是我通过这个方法获取IServiceProvider
         /// </summary>
-        private static Func<IServiceProvider?>? GetProviderFunc = () => _instance?.HttpContextAccessor?.HttpContext?.RequestServices;
+        private static Func<IServiceProvider?>? GetProviderFunc = () => staticHttpContextAccessor.HttpContext?.RequestServices;
         /// <summary>
         /// 获取是否被注入过
         /// </summary>
@@ -198,7 +197,8 @@ namespace LegendaryDependencyInjection
             //定义一个代理类型建造器
             TypeBuilder builder = _module.DefineType($"{type.Name}_Lazy_{Guid.NewGuid()}", TypeAttributes.Public, type);
             //循环所有属性，把属性getter方法改造为如果属性为空，就自动注入依赖，并把依赖赋值给属性
-            props.ToList().ForEach(prop => {
+            foreach (var prop in props)
+            {
                 MethodBuilder methodBuilder = builder.DefineMethod($"get_{prop.Name}", MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.Virtual, prop.PropertyType, Type.EmptyTypes);
                 ILGenerator il = methodBuilder.GetILGenerator();
                 il.Emit(OpCodes.Ldarg_0);
@@ -219,11 +219,12 @@ namespace LegendaryDependencyInjection
                 il.Emit(OpCodes.Ret);
                 PropertyBuilder propertyBuilder = builder.DefineProperty(prop.Name, prop.Attributes, prop.PropertyType, Type.EmptyTypes);
                 propertyBuilder.SetGetMethod(methodBuilder);
-            });
+            }
             //获取所有构造函数
             ConstructorInfo[] constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
             //重写所有构造函数，模仿目标类型
-            constructors.ToList().ForEach(constructor => {
+            foreach (var constructor in constructors)
+            {
                 Type[] types = constructor.GetParameters().Select(a => a.ParameterType).ToArray();
                 ConstructorBuilder constructorBuilder = builder.DefineConstructor(constructor.Attributes, constructor.CallingConvention, types);
                 ILGenerator il = constructorBuilder.GetILGenerator();
@@ -235,7 +236,7 @@ namespace LegendaryDependencyInjection
                 });
                 il.Emit(OpCodes.Call, constructor);
                 il.Emit(OpCodes.Ret);
-            });
+            }
 
             //生成新类型为代理类
             Type resultType = builder.CreateType();
