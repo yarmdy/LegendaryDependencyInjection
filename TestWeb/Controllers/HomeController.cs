@@ -20,7 +20,7 @@ namespace TestWeb.Controllers
         }
         public override string? ToString()
         {
-            return base.ToString();
+            return "I'm HomeController Has Index Action!";
         }
     }
 }
