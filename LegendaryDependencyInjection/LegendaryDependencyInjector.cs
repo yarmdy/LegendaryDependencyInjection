@@ -202,7 +202,7 @@ namespace LegendaryDependencyInjection
                 MethodBuilder methodBuilder = builder.DefineMethod($"get_{prop.Name}", MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.Virtual, prop.PropertyType, Type.EmptyTypes);
                 ILGenerator il = methodBuilder.GetILGenerator();
                 il.Emit(OpCodes.Ldarg_0);
-                il.Emit(OpCodes.Call, type.GetMethod($"get_{prop.Name}", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)!);
+                il.Emit(OpCodes.Call, prop.GetGetMethod()!);
                 il.Emit(OpCodes.Dup);
                 Label over = il.DefineLabel();
                 il.Emit(OpCodes.Brtrue, over);
@@ -212,7 +212,7 @@ namespace LegendaryDependencyInjection
                 il.Emit(OpCodes.Stloc_0, propV);
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldloc_0);
-                il.Emit(OpCodes.Call, type.GetMethod($"set_{prop.Name}", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)!);
+                il.Emit(OpCodes.Call, prop.GetSetMethod()!);
                 il.Emit(OpCodes.Ldloc_0);
 
                 il.MarkLabel(over);
