@@ -67,6 +67,15 @@ namespace LegendaryDependencyInjection
         {
             return GetProviderFunc?.Invoke()?.GetService(type);
         }
+
+        private static MethodInfo? _getServiceMethod = null;
+        private static MethodInfo getServiceMethod
+        {
+            get
+            {
+                return _getServiceMethod ??= typeof(LegendaryDependencyInjector).GetMethod("GetServiceInProvider", BindingFlags.Static | BindingFlags.Public)!;
+            }
+        }
         /// <summary>
         /// 新建程序集模块
         /// </summary>
@@ -207,7 +216,7 @@ namespace LegendaryDependencyInjection
                 Label over = il.DefineLabel();
                 il.Emit(OpCodes.Brtrue, over);
                 il.Emit(OpCodes.Pop);
-                il.Emit(OpCodes.Call, GetType().GetMethod("GetServiceInProvider", BindingFlags.Static | BindingFlags.Public)!.MakeGenericMethod(prop.PropertyType));
+                il.Emit(OpCodes.Call, getServiceMethod.MakeGenericMethod(prop.PropertyType));
                 LocalBuilder propV = il.DeclareLocal(prop.PropertyType);
                 il.Emit(OpCodes.Stloc_0, propV);
                 il.Emit(OpCodes.Ldarg_0);
