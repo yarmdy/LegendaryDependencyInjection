@@ -11,7 +11,7 @@ namespace TestWeb.Controllers
         [Inj]
         public virtual IEnumerable<ILazyClass> LazyClasses { get; set; } = default!;
 
-        private ILazyClass? _defaultLazy { get; set; } = null!;
+        private ILazyClass? _defaultLazy { get; set; } = null;
         [Keyed("def")]
         public virtual ILazyClass DefaultLazy {
             get
