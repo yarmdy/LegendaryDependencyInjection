@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Http;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
 
 namespace LegendaryDependencyInjection
 {
@@ -58,6 +59,10 @@ namespace LegendaryDependencyInjection
         {
             return (T?)GetServiceInProvider(typeof(T));
         }
+        public static T? GetKeyedServiceInProvider<T>(object? key) where T : class
+        {
+            return GetProviderFunc?.Invoke()?.GetKeyedService<T>(key);
+        }
         /// <summary>
         /// 从提供者获取服务
         /// </summary>
@@ -68,14 +73,14 @@ namespace LegendaryDependencyInjection
             return GetProviderFunc?.Invoke()?.GetService(type);
         }
 
-        private static MethodInfo? _getServiceMethod = null;
-        private static MethodInfo getServiceMethod
-        {
-            get
-            {
-                return _getServiceMethod ??= typeof(LegendaryDependencyInjector).GetMethod("GetServiceInProvider", BindingFlags.Static | BindingFlags.Public)!;
-            }
-        }
+        private static MethodInfo _getServiceMethod = typeof(LegendaryDependencyInjector).GetMethod("GetServiceInProvider", BindingFlags.Static | BindingFlags.Public)!;
+        private static MethodInfo _getKeyedServiceMethod = typeof(LegendaryDependencyInjector).GetMethod("GetKeyedServiceInProvider", BindingFlags.Static | BindingFlags.Public)!;
+
+        public static MethodInfo _getTypeMethod = typeof(object).GetMethod("GetType", BindingFlags.Instance | BindingFlags.Public)!;
+        public static MethodInfo _getPropertyMethod = typeof(Type).GetMethod("GetProperty", BindingFlags.Instance | BindingFlags.Public, [typeof(string), typeof(BindingFlags)])!;
+        private static MethodInfo _getCustomAttribute = typeof(CustomAttributeExtensions).GetMethod("GetCustomAttribute", BindingFlags.Public | BindingFlags.Static, [typeof(MemberInfo)])!.MakeGenericMethod(typeof(KeyedAttribute))!;
+        private static MethodInfo _getKeyMethod = typeof(KeyedAttribute).GetProperty("Key", BindingFlags.Public | BindingFlags.Instance)!.GetGetMethod()!;
+
         /// <summary>
         /// 新建程序集模块
         /// </summary>
@@ -178,7 +183,7 @@ namespace LegendaryDependencyInjection
             var resType = _dic.GetOrAdd(type, getType);
             return Create(resType);
         }
-
+        [HttpGet]
         private Type getType(Type type)
         {
             //如果目标类型是接口，就报错
@@ -216,7 +221,26 @@ namespace LegendaryDependencyInjection
                 Label over = il.DefineLabel();
                 il.Emit(OpCodes.Brtrue, over);
                 il.Emit(OpCodes.Pop);
-                il.Emit(OpCodes.Call, getServiceMethod.MakeGenericMethod(prop.PropertyType));
+                var keyed = prop.GetCustomAttribute<KeyedAttribute>();
+                if (keyed == null)
+                {
+                    il.Emit(OpCodes.Call, _getServiceMethod.MakeGenericMethod(prop.PropertyType));
+                }
+                else
+                {
+                    //var writeLine = typeof(Console).GetMethod("WriteLine", BindingFlags.Static | BindingFlags.Public, [typeof(string)])!;
+                    //writeLine.Invoke(null, ["生成了writeline"]);
+                    //il.Emit(OpCodes.Ldstr, "准备调用获取属性");
+                    //il.Emit(OpCodes.Call, writeLine);
+                    il.Emit(OpCodes.Ldarg_0);
+                    il.Emit(OpCodes.Call, _getTypeMethod);
+                    il.Emit(OpCodes.Ldstr, prop.Name);
+                    il.Emit(OpCodes.Ldc_I4, (int)(BindingFlags.Instance | BindingFlags.Public));
+                    il.Emit(OpCodes.Call, _getPropertyMethod);
+                    il.Emit(OpCodes.Call, _getCustomAttribute);
+                    il.Emit(OpCodes.Call, _getKeyMethod);
+                    il.Emit(OpCodes.Call, _getKeyedServiceMethod.MakeGenericMethod(prop.PropertyType));
+                }
                 il.DeclareLocal(prop.PropertyType);
                 il.Emit(OpCodes.Stloc_0);
                 il.Emit(OpCodes.Ldarg_0);
@@ -412,5 +436,19 @@ namespace LegendaryDependencyInjection
         {
             services.AddTransient(implementation, sp => GetService(sp, implementation));
         }
+    }
+    [AttributeUsage(AttributeTargets.Property)]
+    public class KeyedAttribute : Attribute
+    {
+        /// <summary>
+        /// Creates a new <see cref="FromKeyedServicesAttribute"/> instance.
+        /// </summary>
+        /// <param name="key">The key of the keyed service to bind to.</param>
+        public KeyedAttribute(object key) => Key = key;
+
+        /// <summary>
+        /// The key of the keyed service to bind to.
+        /// </summary>
+        public object Key { get; }
     }
 }

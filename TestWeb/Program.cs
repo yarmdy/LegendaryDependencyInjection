@@ -5,6 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddLazyScoped<ILazyClass, DefaultLazyClass>();
 builder.Services.AddLazyScoped<ILazyClass, FirstLazyClass>();
+builder.Services.AddKeyedScoped<ILazyClass, DefaultLazyClass>("def");
 builder.Services.AddScoped(typeof(IDelayFactory<>),typeof(DelayFactory<>));
 
 // Add services to the container.

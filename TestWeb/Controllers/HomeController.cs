@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using System.Reflection;
+using LegendaryDependencyInjection;
 
 namespace TestWeb.Controllers
 {
@@ -8,6 +9,10 @@ namespace TestWeb.Controllers
     public class HomeController : Controller
     {
         public virtual IEnumerable<ILazyClass> LazyClasses { get; set; } = default!;
+        [Keyed("def")]
+        public virtual ILazyClass DefaultLazy { get; set; } = default!;
+
+
         private IDelayFactory<ILazyClass> _delayClass { get; set; } = default!;
         public virtual IServiceProvider Services { get; set; } = default!;
 
@@ -17,7 +22,7 @@ namespace TestWeb.Controllers
         public IActionResult Index()
         {
             //这里可以看到，延迟Factory模式不使用依然要创建Factory对象，而代理模式绝不会创建任何对象,只在使用的那一刻创建
-            return Json(new { Code=1 ,Lazy= LazyClasses,Lazy2 = _delayClass.Service });
+            return Json(new { Code=1 ,Lazy= LazyClasses,Lazy2 = _delayClass.Service, DefaultLazy });
         }
         public override string? ToString()
         {
