@@ -217,8 +217,8 @@ namespace LegendaryDependencyInjection
                 il.Emit(OpCodes.Brtrue, over);
                 il.Emit(OpCodes.Pop);
                 il.Emit(OpCodes.Call, getServiceMethod.MakeGenericMethod(prop.PropertyType));
-                LocalBuilder propV = il.DeclareLocal(prop.PropertyType);
-                il.Emit(OpCodes.Stloc_0, propV);
+                il.DeclareLocal(prop.PropertyType);
+                il.Emit(OpCodes.Stloc_0);
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldloc_0);
                 il.Emit(OpCodes.Call, prop.GetSetMethod()!);
