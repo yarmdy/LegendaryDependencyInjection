@@ -468,6 +468,121 @@ namespace LegendaryDependencyInjection
         {
             services.AddTransient(implementation, sp => GetService(sp, implementation));
         }
+
+        /// <summary>
+        /// 注入延迟生命周期类型
+        /// </summary>
+        /// <typeparam name="TService"></typeparam>
+        /// <typeparam name="TImplementation"></typeparam>
+        /// <param name="services"></param>
+        public static void AddLazyKeyedScoped<TService, TImplementation>(this IServiceCollection services,object? key) where TService : class where TImplementation : class, TService
+        {
+            AddLazyKeyedScoped(services, typeof(TService), typeof(TImplementation),key);
+        }
+        /// <summary>
+        /// 注入延迟单例类型
+        /// </summary>
+        /// <typeparam name="TService"></typeparam>
+        /// <typeparam name="TImplementation"></typeparam>
+        /// <param name="services"></param>
+        public static void AddLazyKeyedSingleton<TService, TImplementation>(this IServiceCollection services, object? key) where TService : class where TImplementation : class, TService
+        {
+            AddLazyKeyedSingleton(services, typeof(TService), typeof(TImplementation), key);
+        }
+        /// <summary>
+        /// 注入延迟临时类型
+        /// </summary>
+        /// <typeparam name="TService"></typeparam>
+        /// <typeparam name="TImplementation"></typeparam>
+        /// <param name="services"></param>
+        public static void AddLazyKeyedTransient<TService, TImplementation>(this IServiceCollection services, object? key) where TService : class where TImplementation : class, TService
+        {
+            AddLazyKeyedTransient(services, typeof(TService), typeof(TImplementation), key);
+        }
+        /// <summary>
+        /// 注入延迟生命周期类型
+        /// </summary>
+        /// <param name="services"></param>
+        /// <param name="service"></param>
+        /// <param name="implementation"></param>
+        public static void AddLazyKeyedScoped(this IServiceCollection services, Type service, Type implementation, object? key)
+        {
+            services.AddKeyedScoped(service, key, (sp,k) => GetService(sp, implementation));
+        }
+        /// <summary>
+        /// 注入延迟单例类型
+        /// </summary>
+        /// <param name="services"></param>
+        /// <param name="service"></param>
+        /// <param name="implementation"></param>
+        public static void AddLazyKeyedSingleton(this IServiceCollection services, Type service, Type implementation, object? key)
+        {
+            services.AddKeyedSingleton(service, key, (sp,k) => GetService(sp, implementation));
+        }
+        /// <summary>
+        /// 注入延迟临时类型
+        /// </summary>
+        /// <param name="services"></param>
+        /// <param name="service"></param>
+        /// <param name="implementation"></param>
+        public static void AddLazyKeyedTransient(this IServiceCollection services, Type service, Type implementation, object? key)
+        {
+            services.AddKeyedTransient(service, key, (sp,k) => GetService(sp, implementation));
+        }
+        /// <summary>
+        /// 注入延迟生命周期类型
+        /// </summary>
+        /// <typeparam name="TImplementation"></typeparam>
+        /// <param name="services"></param>
+        public static void AddLazyKeyedScoped<TImplementation>(this IServiceCollection services, object? key) where TImplementation : class
+        {
+            AddLazyKeyedScoped(services, typeof(TImplementation), key);
+        }
+        /// <summary>
+        /// 注入延迟单例类型
+        /// </summary>
+        /// <typeparam name="TImplementation"></typeparam>
+        /// <param name="services"></param>
+        public static void AddLazyKeyedSingleton<TImplementation>(this IServiceCollection services, object? key) where TImplementation : class
+        {
+            AddLazyKeyedSingleton(services, typeof(TImplementation), key);
+        }
+        /// <summary>
+        /// 注入延迟临时类型
+        /// </summary>
+        /// <typeparam name="TImplementation"></typeparam>
+        /// <param name="services"></param>
+        public static void AddLazyKeyedTransient<TImplementation>(this IServiceCollection services, object? key) where TImplementation : class
+        {
+            AddLazyKeyedTransient(services, typeof(TImplementation), key);
+        }
+        /// <summary>
+        /// 注入延迟生命周期类型
+        /// </summary>
+        /// <param name="services"></param>
+        /// <param name="implementation"></param>
+        public static void AddLazyKeyedScoped(this IServiceCollection services, Type implementation, object? key)
+        {
+            services.AddKeyedScoped(implementation, key, (sp,k) => GetService(sp, implementation));
+        }
+        /// <summary>
+        /// 注入延迟单例类型
+        /// </summary>
+        /// <param name="services"></param>
+        /// <param name="implementation"></param>
+        public static void AddLazyKeyedSingleton(this IServiceCollection services, Type implementation, object? key)
+        {
+            services.AddKeyedSingleton(implementation, key, (sp,key) => GetService(sp, implementation));
+        }
+        /// <summary>
+        /// 注入延迟临时类型
+        /// </summary>
+        /// <param name="services"></param>
+        /// <param name="implementation"></param>
+        public static void AddLazyKeyedTransient(this IServiceCollection services, Type implementation, object? key)
+        {
+            services.AddKeyedTransient(implementation, key, (sp,k) => GetService(sp, implementation));
+        }
     }
     [AttributeUsage(AttributeTargets.Property)]
     public class KeyedAttribute : InjAttribute
