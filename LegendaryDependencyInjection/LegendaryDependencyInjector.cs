@@ -20,12 +20,13 @@ namespace LegendaryDependencyInjection
         /// </summary>
         /// <param name="httpContextAccessor">依赖，用于获取服务提供者</param>
         /// <param name="serviceProviderIsService">依赖，用于判断是否可以获取服务</param>
-        public LegendaryDependencyInjector(IHttpContextAccessor httpContextAccessor, IServiceProviderIsService serviceProviderIsService)
+        public LegendaryDependencyInjector(IHttpContextAccessor httpContextAccessor, IServiceProviderIsService serviceProviderIsService, IServiceProviderIsKeyedService serviceProviderIsKeyedService)
         {
             //赋值
             HttpContextAccessor = httpContextAccessor;
             staticHttpContextAccessor = httpContextAccessor;
             ServiceProviderIsService = serviceProviderIsService;
+            ServiceProviderIsKeyedService = serviceProviderIsKeyedService;
         }
         /// <summary>
         /// http上下文访问器
@@ -35,6 +36,7 @@ namespace LegendaryDependencyInjection
         /// 判断是否可以获取服务的判断器
         /// </summary>
         public IServiceProviderIsService ServiceProviderIsService { get; set; } = default!;
+        public IServiceProviderIsKeyedService ServiceProviderIsKeyedService { get; set; } = default!;
 
         private static IHttpContextAccessor staticHttpContextAccessor = default!;
         /// <summary>
@@ -49,6 +51,11 @@ namespace LegendaryDependencyInjection
         public bool HasInjected(Type type)
         {
             return ServiceProviderIsService.IsService(type);
+        }
+
+        public bool HasKeyedInjected(Type type,object? key)
+        {
+            return ServiceProviderIsKeyedService.IsKeyedService(type, key);
         }
         /// <summary>
         /// 从提供者获取服务
@@ -71,6 +78,10 @@ namespace LegendaryDependencyInjection
         private static object? GetServiceInProvider(Type type)
         {
             return GetProviderFunc?.Invoke()?.GetService(type);
+        }
+        private static object? GetKeyedServiceInProvider(Type type,object? key)
+        {
+            return GetProviderFunc?.Invoke()?.GetKeyedServices(type,key)?.LastOrDefault();
         }
 
         private static MethodInfo _getServiceMethod = typeof(LegendaryDependencyInjector).GetMethod("GetServiceInProvider", BindingFlags.Static | BindingFlags.Public)!;
@@ -156,7 +167,24 @@ namespace LegendaryDependencyInjection
             //    return Activator.CreateInstance(type, args)!;
             //}
             //throw new NotImplementedException();
-            return ActivatorUtilities.CreateInstance(HttpContextAccessor?.HttpContext?.RequestServices!, type);
+            var obj = ActivatorUtilities.CreateInstance(HttpContextAccessor?.HttpContext?.RequestServices!, type);
+            var properties = obj.GetType().GetProperties(BindingFlags.Instance|BindingFlags.Public|BindingFlags.SetProperty|BindingFlags.GetProperty).Where(a=>!a.GetMethod!.IsVirtual).Select(a=>new {prop = a,injAttr = a.GetCustomAttribute<InjAttribute>() }).Where(a=>a.injAttr!=null && ((a.injAttr is not KeyedAttribute) && HasInjected(a.prop.PropertyType) || (a.injAttr is KeyedAttribute keyed) && HasKeyedInjected(a.prop.PropertyType, keyed.Key) ));
+
+            foreach (var propinfo in properties)
+            {
+                var prop = propinfo.prop;
+                if (prop.GetValue(obj) != null)
+                {
+                    continue;
+                }
+                if (propinfo.injAttr is not KeyedAttribute keyed)
+                {
+                    prop.SetValue(obj, GetServiceInProvider(prop.PropertyType));
+                    continue;
+                }
+                prop.SetValue(obj, GetKeyedServiceInProvider(prop.PropertyType,keyed.Key));
+            }
+            return obj;
         }
         /// <summary>
         /// 类型映射缓存
@@ -178,7 +206,7 @@ namespace LegendaryDependencyInjection
         /// <returns></returns>
         /// <exception cref="InvalidOperationException"></exception>
         /// <exception cref="ArgumentException"></exception>
-        public object GetService(Type type)
+        public object GetService(Type type,object? keyed=null)
         {
             var resType = _dic.GetOrAdd(type, getType);
             return Create(resType);
@@ -202,7 +230,10 @@ namespace LegendaryDependencyInjection
                 return type;
             }
             //获取目标类型所有依赖和虚属性
-            IEnumerable<PropertyInfo> props = type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.SetProperty | BindingFlags.GetProperty).Where(a => a.GetMethod!.IsVirtual && (a.PropertyType.IsClass || a.PropertyType.IsInterface) && HasInjected(a.PropertyType));
+            IEnumerable<(PropertyInfo prop, KeyedAttribute? keyed)> props = type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.SetProperty | BindingFlags.GetProperty)
+                .Where(a => (a.PropertyType.IsClass || a.PropertyType.IsInterface) && a.GetMethod!.IsVirtual)
+                .Select(a => new { prop = a, keyed = a.GetCustomAttribute<KeyedAttribute>() })
+                .Where(a=>a.keyed==null && HasInjected(a.prop.PropertyType) || a.keyed!=null && HasKeyedInjected(a.prop.PropertyType,a.keyed.Key)).Select(a=>(a.prop, a.keyed));
             //如果不存在，依然不需要代理，直接创建自身
             if (props.Count() <= 0)
             {
@@ -211,8 +242,9 @@ namespace LegendaryDependencyInjection
             //定义一个代理类型建造器
             TypeBuilder builder = _module.DefineType($"{type.Name}_Lazy_{Guid.NewGuid()}", TypeAttributes.Public, type);
             //循环所有属性，把属性getter方法改造为如果属性为空，就自动注入依赖，并把依赖赋值给属性
-            foreach (var prop in props)
+            foreach (var propinfo in props)
             {
+                var prop = propinfo.prop;
                 MethodBuilder methodBuilder = builder.DefineMethod($"get_{prop.Name}", MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.Virtual, prop.PropertyType, Type.EmptyTypes);
                 ILGenerator il = methodBuilder.GetILGenerator();
                 il.Emit(OpCodes.Ldarg_0);
@@ -221,7 +253,7 @@ namespace LegendaryDependencyInjection
                 Label over = il.DefineLabel();
                 il.Emit(OpCodes.Brtrue, over);
                 il.Emit(OpCodes.Pop);
-                var keyed = prop.GetCustomAttribute<KeyedAttribute>();
+                var keyed = propinfo.keyed;
                 if (keyed == null)
                 {
                     il.Emit(OpCodes.Call, _getServiceMethod.MakeGenericMethod(prop.PropertyType));
@@ -438,7 +470,7 @@ namespace LegendaryDependencyInjection
         }
     }
     [AttributeUsage(AttributeTargets.Property)]
-    public class KeyedAttribute : Attribute
+    public class KeyedAttribute : InjAttribute
     {
         /// <summary>
         /// Creates a new <see cref="FromKeyedServicesAttribute"/> instance.
@@ -450,5 +482,8 @@ namespace LegendaryDependencyInjection
         /// The key of the keyed service to bind to.
         /// </summary>
         public object Key { get; }
+    }
+    public class InjAttribute : Attribute
+    {
     }
 }

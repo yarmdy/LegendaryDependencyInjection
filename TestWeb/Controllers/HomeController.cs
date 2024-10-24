@@ -8,6 +8,7 @@ namespace TestWeb.Controllers
     [Route("{controller=Home}/{action=Index}/{id?}")]
     public class HomeController : Controller
     {
+        [Inj]
         public virtual IEnumerable<ILazyClass> LazyClasses { get; set; } = default!;
 
         private ILazyClass? _defaultLazy { get; set; } = null!;
@@ -25,9 +26,9 @@ namespace TestWeb.Controllers
         [Keyed("fst")]
         public virtual ILazyClass FirstLazy { get; set; } = default!;
 
-
         private IDelayFactory<ILazyClass> _delayClass { get; set; } = default!;
-        public virtual IServiceProvider Services { get; set; } = default!;
+        [Inj]
+        public virtual  IServiceProvider Services { get; set; } = default!;
 
         public HomeController(IDelayFactory<ILazyClass> delayClass) 
         {
