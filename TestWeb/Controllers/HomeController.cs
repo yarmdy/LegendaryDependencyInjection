@@ -36,6 +36,12 @@ namespace TestWeb.Controllers
         }
         public IActionResult Index()
         {
+            // 看看这个依赖的私有字段的值
+            Console.WriteLine($"_defaultLazy的值是：{_defaultLazy}");
+            // 马上使用这个还是null的依赖
+            Console.WriteLine($"DefaultLazy的值是：{DefaultLazy}");
+            // 再看看这个依赖的私有字段的值
+            Console.WriteLine($"_defaultLazy的值是：{_defaultLazy}");
             //这里可以看到，延迟Factory模式不使用依然要创建Factory对象，而代理模式绝不会创建任何对象,只在使用的那一刻创建
             return Json(new { Code=1 ,Lazy= LazyClasses,Lazy2 = _delayClass.Service, DefaultLazy, FirstLazy });
         }
