@@ -88,8 +88,8 @@ namespace LegendaryDependencyInjection
         private static MethodInfo _getKeyedServiceMethod = typeof(LegendaryDependencyInjector).GetMethod("GetKeyedServiceInProvider", BindingFlags.Static | BindingFlags.Public)!;
 
         public static MethodInfo _getTypeMethod = typeof(object).GetMethod("GetType", BindingFlags.Instance | BindingFlags.Public)!;
-        public static MethodInfo _getPropertyMethod = typeof(Type).GetMethod("GetProperty", BindingFlags.Instance | BindingFlags.Public, [typeof(string), typeof(BindingFlags)])!;
-        private static MethodInfo _getCustomAttribute = typeof(CustomAttributeExtensions).GetMethod("GetCustomAttribute", BindingFlags.Public | BindingFlags.Static, [typeof(MemberInfo)])!.MakeGenericMethod(typeof(KeyedAttribute))!;
+        public static MethodInfo _getPropertyMethod = typeof(Type).GetMethod("GetProperty", BindingFlags.Instance | BindingFlags.Public, new []{ typeof(string), typeof(BindingFlags) })!;
+        private static MethodInfo _getCustomAttribute = typeof(CustomAttributeExtensions).GetMethod("GetCustomAttribute", BindingFlags.Public | BindingFlags.Static, new[] { typeof(MemberInfo) })!.MakeGenericMethod(typeof(KeyedAttribute))!;
         private static MethodInfo _getKeyMethod = typeof(KeyedAttribute).GetProperty("Key", BindingFlags.Public | BindingFlags.Instance)!.GetGetMethod()!;
 
         /// <summary>
