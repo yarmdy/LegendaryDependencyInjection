@@ -304,7 +304,7 @@ namespace LegendaryDependencyInjection
             }
 
             //生成新类型为代理类
-            Type resultType = builder.CreateType();
+            Type resultType = builder.CreateType()!;
             //使用新类型创建对象
             return resultType;
         }
