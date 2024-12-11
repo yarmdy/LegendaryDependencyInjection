@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc.Controllers;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace LegendaryDependencyInjection
@@ -10,26 +8,11 @@ namespace LegendaryDependencyInjection
     /// </summary>
     public static class LegendaryDependencyInjectorExtensions
     {
-        /// <summary>
-        /// 扩展mvc，使controller构造器改为服务构造器，并把controller的构造方式改为创建代理，继承它本身，然后实例化
-        /// </summary>
-        /// <param name="builder"></param>
-        /// <returns></returns>
-        public static IMvcBuilder AddLegendaryDependencyInjector(this IMvcBuilder builder)
+        public static IServiceCollection AddLegendaryDependencyInjector<TServiceProviderAccessor>(this IServiceCollection services) where TServiceProviderAccessor : class, IServiceProviderAccessor
         {
-            builder.Services.TryAddSingleton<LegendaryDependencyInjector>();
-            ControllerFeature feature = new ControllerFeature();
-            builder.PartManager.PopulateFeature(feature);
-
-            foreach (Type controller in feature.Controllers.Select(c => c.AsType()))
-            {
-                builder.Services.AddTransient(controller, a => GetService(a, controller));
-            }
-
-            builder.Services.Replace(ServiceDescriptor.Transient<IControllerActivator, ServiceBasedControllerActivator>());
-            builder.Services.TryAdd(ServiceDescriptor.Singleton<IHttpContextAccessor,HttpContextAccessor>());
-
-            return builder;
+            services.TryAddSingleton<LegendaryDependencyInjector>();
+            services.TryAddSingleton<IServiceProviderAccessor,TServiceProviderAccessor>();
+            return services;
         }
         /// <summary>
         /// 获取传奇级依赖注入

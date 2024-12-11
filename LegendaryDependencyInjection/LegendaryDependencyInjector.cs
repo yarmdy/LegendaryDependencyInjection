@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -14,31 +13,29 @@ namespace LegendaryDependencyInjection
         /// <summary>
         /// 构造函数
         /// </summary>
-        /// <param name="httpContextAccessor">依赖，用于获取服务提供者</param>
-        /// <param name="serviceProviderIsService">依赖，用于判断是否可以获取服务</param>
-        public LegendaryDependencyInjector(IHttpContextAccessor httpContextAccessor, IServiceProviderIsService serviceProviderIsService, IServiceProviderIsKeyedService serviceProviderIsKeyedService)
+        public LegendaryDependencyInjector(IServiceProviderAccessor serviceProviderAccessor, IServiceProviderIsService serviceProviderIsService, IServiceProviderIsKeyedService serviceProviderIsKeyedService)
         {
             //赋值
-            HttpContextAccessor = httpContextAccessor;
-            staticHttpContextAccessor = httpContextAccessor;
+            ServiceProviderAccessor = serviceProviderAccessor;
+            staticServiceProviderAccessor = serviceProviderAccessor;
             ServiceProviderIsService = serviceProviderIsService;
             ServiceProviderIsKeyedService = serviceProviderIsKeyedService;
         }
         /// <summary>
         /// http上下文访问器
         /// </summary>
-        public IHttpContextAccessor? HttpContextAccessor { get; set; }
+        public IServiceProviderAccessor ServiceProviderAccessor { get; set; }
         /// <summary>
         /// 判断是否可以获取服务的判断器
         /// </summary>
         public IServiceProviderIsService ServiceProviderIsService { get; set; } = default!;
         public IServiceProviderIsKeyedService ServiceProviderIsKeyedService { get; set; } = default!;
 
-        private static IHttpContextAccessor staticHttpContextAccessor = default!;
+        private static IServiceProviderAccessor staticServiceProviderAccessor = default!;
         /// <summary>
         /// 获取服务提供者委托，就是我通过这个方法获取IServiceProvider
         /// </summary>
-        private static Func<IServiceProvider?>? GetProviderFunc = () => staticHttpContextAccessor.HttpContext?.RequestServices;
+        private static Func<IServiceProvider?>? GetProviderFunc = () => staticServiceProviderAccessor.Provider;
         /// <summary>
         /// 获取是否被注入过
         /// </summary>
@@ -163,7 +160,7 @@ namespace LegendaryDependencyInjection
             //    return Activator.CreateInstance(type, args)!;
             //}
             //throw new NotImplementedException();
-            var obj = ActivatorUtilities.CreateInstance(HttpContextAccessor?.HttpContext?.RequestServices!, type);
+            var obj = ActivatorUtilities.CreateInstance(ServiceProviderAccessor.Provider, type);
             var properties = obj.GetType().GetProperties(BindingFlags.Instance|BindingFlags.Public|BindingFlags.SetProperty|BindingFlags.GetProperty).Where(a=>!a.GetMethod!.IsVirtual).Select(a=>new {prop = a,injAttr = a.GetCustomAttribute<InjAttribute>() }).Where(a=>a.injAttr!=null && ((a.injAttr is not KeyedAttribute) && HasInjected(a.prop.PropertyType) || (a.injAttr is KeyedAttribute keyed) && HasKeyedInjected(a.prop.PropertyType, keyed.Key) ));
 
             foreach (var propinfo in properties)

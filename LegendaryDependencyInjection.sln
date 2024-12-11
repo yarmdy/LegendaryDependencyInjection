@@ -5,7 +5,9 @@ VisualStudioVersion = 17.8.34511.84
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LegendaryDependencyInjection", "LegendaryDependencyInjection\LegendaryDependencyInjection.csproj", "{F7754495-38C4-4772-B1B3-5F2750BB0080}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestWeb", "TestWeb\TestWeb.csproj", "{5ACCB2A3-C946-4BCA-A5C5-E06F366F8125}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestWeb", "TestWeb\TestWeb.csproj", "{5ACCB2A3-C946-4BCA-A5C5-E06F366F8125}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LegendaryDependencyInjection.Extensions.AspNet", "LegendaryDependencyInjection.Extensions.AspNet\LegendaryDependencyInjection.Extensions.AspNet.csproj", "{DBF533D1-986E-46D1-8E53-FF5F0B59E98C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{5ACCB2A3-C946-4BCA-A5C5-E06F366F8125}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5ACCB2A3-C946-4BCA-A5C5-E06F366F8125}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5ACCB2A3-C946-4BCA-A5C5-E06F366F8125}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DBF533D1-986E-46D1-8E53-FF5F0B59E98C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DBF533D1-986E-46D1-8E53-FF5F0B59E98C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DBF533D1-986E-46D1-8E53-FF5F0B59E98C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DBF533D1-986E-46D1-8E53-FF5F0B59E98C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

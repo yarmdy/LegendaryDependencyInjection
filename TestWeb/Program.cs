@@ -1,4 +1,5 @@
 using LegendaryDependencyInjection;
+using LegendaryDependencyInjection.Extensions.AspNet;
 using System.Text.Encodings.Web;
 
 var builder = WebApplication.CreateBuilder(args);
