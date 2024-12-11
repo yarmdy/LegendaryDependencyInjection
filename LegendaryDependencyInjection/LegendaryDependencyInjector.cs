@@ -1,12 +1,8 @@
-﻿using System.Reflection.Emit;
-using System.Reflection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Mvc.Controllers;
-using Microsoft.AspNetCore.Http;
 using System.Collections.Concurrent;
-using System.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
+using System.Reflection;
+using System.Reflection.Emit;
 
 namespace LegendaryDependencyInjection
 {
@@ -211,7 +207,6 @@ namespace LegendaryDependencyInjection
             var resType = _dic.GetOrAdd(type, getType);
             return Create(resType);
         }
-        [HttpGet]
         private Type getType(Type type)
         {
             //如果目标类型是接口，就报错

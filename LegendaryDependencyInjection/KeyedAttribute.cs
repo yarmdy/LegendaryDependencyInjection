@@ -1,12 +1,4 @@
-﻿using System.Reflection.Emit;
-using System.Reflection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Mvc.Controllers;
-using Microsoft.AspNetCore.Http;
-using System.Collections.Concurrent;
-using System.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.Extensions.DependencyInjection;
 
 namespace LegendaryDependencyInjection
 {
