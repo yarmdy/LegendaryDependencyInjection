@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 
@@ -13,29 +14,17 @@ namespace LegendaryDependencyInjection
         /// <summary>
         /// 构造函数
         /// </summary>
-        public LegendaryDependencyInjector(IServiceProviderAccessor serviceProviderAccessor, IServiceProviderIsService serviceProviderIsService, IServiceProviderIsKeyedService serviceProviderIsKeyedService)
+        public LegendaryDependencyInjector(IServiceProviderIsService serviceProviderIsService, IServiceProviderIsKeyedService serviceProviderIsKeyedService)
         {
             //赋值
-            ServiceProviderAccessor = serviceProviderAccessor;
-            staticServiceProviderAccessor = serviceProviderAccessor;
             ServiceProviderIsService = serviceProviderIsService;
             ServiceProviderIsKeyedService = serviceProviderIsKeyedService;
         }
-        /// <summary>
-        /// http上下文访问器
-        /// </summary>
-        public IServiceProviderAccessor ServiceProviderAccessor { get; set; }
         /// <summary>
         /// 判断是否可以获取服务的判断器
         /// </summary>
         public IServiceProviderIsService ServiceProviderIsService { get; set; } = default!;
         public IServiceProviderIsKeyedService ServiceProviderIsKeyedService { get; set; } = default!;
-
-        private static IServiceProviderAccessor staticServiceProviderAccessor = default!;
-        /// <summary>
-        /// 获取服务提供者委托，就是我通过这个方法获取IServiceProvider
-        /// </summary>
-        private static Func<IServiceProvider?>? GetProviderFunc = () => staticServiceProviderAccessor.Provider;
         /// <summary>
         /// 获取是否被注入过
         /// </summary>
@@ -55,40 +44,27 @@ namespace LegendaryDependencyInjection
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public static T? GetServiceInProvider<T>() where T : class
+        public static T? GetServiceInProvider<T>(IServiceProvider sp) where T : class
         {
-            return (T?)GetServiceInProvider(typeof(T));
+            return (T?)sp.GetService(typeof(T));
         }
-        public static T? GetKeyedServiceInProvider<T>(object? key) where T : class
+        public static T? GetKeyedServiceInProvider<T>(IServiceProvider sp, object? key) where T : class
         {
-            return GetProviderFunc?.Invoke()?.GetKeyedService<T>(key);
-        }
-        /// <summary>
-        /// 从提供者获取服务
-        /// </summary>
-        /// <param name="type"></param>
-        /// <returns></returns>
-        private static object? GetServiceInProvider(Type type)
-        {
-            return GetProviderFunc?.Invoke()?.GetService(type);
-        }
-        private static object? GetKeyedServiceInProvider(Type type,object? key)
-        {
-            return GetProviderFunc?.Invoke()?.GetKeyedServices(type,key)?.LastOrDefault();
+            return sp.GetKeyedService<T>(key);
         }
 
-        private static MethodInfo _getServiceMethod = typeof(LegendaryDependencyInjector).GetMethod("GetServiceInProvider", BindingFlags.Static | BindingFlags.Public)!;
-        private static MethodInfo _getKeyedServiceMethod = typeof(LegendaryDependencyInjector).GetMethod("GetKeyedServiceInProvider", BindingFlags.Static | BindingFlags.Public)!;
+        private static MethodInfo _getServiceMethod = typeof(LegendaryDependencyInjector).GetMethod(nameof(GetServiceInProvider), BindingFlags.Static | BindingFlags.Public)!;
+        private static MethodInfo _getKeyedServiceMethod = typeof(LegendaryDependencyInjector).GetMethod(nameof(GetKeyedServiceInProvider), BindingFlags.Static | BindingFlags.Public)!;
 
-        public static MethodInfo _getTypeMethod = typeof(object).GetMethod("GetType", BindingFlags.Instance | BindingFlags.Public)!;
-        public static MethodInfo _getPropertyMethod = typeof(Type).GetMethod("GetProperty", BindingFlags.Instance | BindingFlags.Public, new []{ typeof(string), typeof(BindingFlags) })!;
-        private static MethodInfo _getCustomAttribute = typeof(CustomAttributeExtensions).GetMethod("GetCustomAttribute", BindingFlags.Public | BindingFlags.Static, new[] { typeof(MemberInfo) })!.MakeGenericMethod(typeof(KeyedAttribute))!;
-        private static MethodInfo _getKeyMethod = typeof(KeyedAttribute).GetProperty("Key", BindingFlags.Public | BindingFlags.Instance)!.GetGetMethod()!;
+        public static MethodInfo _getTypeMethod = typeof(object).GetMethod(nameof(GetType), BindingFlags.Instance | BindingFlags.Public)!;
+        public static MethodInfo _getPropertyMethod = typeof(Type).GetMethod(nameof(Type.GetProperty), BindingFlags.Instance | BindingFlags.Public, new []{ typeof(string), typeof(BindingFlags) })!;
+        private static MethodInfo _getCustomAttribute = typeof(CustomAttributeExtensions).GetMethod(nameof(CustomAttributeExtensions.GetCustomAttribute), BindingFlags.Public | BindingFlags.Static, new[] { typeof(MemberInfo) })!.MakeGenericMethod(typeof(KeyedAttribute))!;
+        private static MethodInfo _getKeyMethod = typeof(KeyedAttribute).GetProperty(nameof(KeyedAttribute.Key), BindingFlags.Public | BindingFlags.Instance)!.GetGetMethod()!;
 
         /// <summary>
         /// 新建程序集模块
         /// </summary>
-        private ModuleBuilder _newModuleBuilder
+        private static ModuleBuilder _newModuleBuilder
         {
             get
             {
@@ -101,15 +77,15 @@ namespace LegendaryDependencyInjection
         /// <summary>
         /// 缓存程序集模块
         /// </summary>
-        private ModuleBuilder? _cacheModuleBuilder;
+        private static ModuleBuilder? _cacheModuleBuilder;
         /// <summary>
         /// 线程锁，保证线程安全
         /// </summary>
-        private readonly object _lockModule = new object();
+        private static readonly object _lockModule = new object();
         /// <summary>
         /// 获取模块，始终返回一个模块，不会新建
         /// </summary>
-        private ModuleBuilder _module
+        private static ModuleBuilder _module
         {
             get
             {
@@ -134,7 +110,7 @@ namespace LegendaryDependencyInjection
         /// <param name="type"></param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
-        private object Create(Type type)
+        private object Create(IServiceProvider sp, Type type)
         {
             //获取所有构造函数
             //ConstructorInfo[] constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
@@ -160,7 +136,7 @@ namespace LegendaryDependencyInjection
             //    return Activator.CreateInstance(type, args)!;
             //}
             //throw new NotImplementedException();
-            var obj = ActivatorUtilities.CreateInstance(ServiceProviderAccessor.Provider, type);
+            var obj = ActivatorUtilities.CreateInstance(sp, type);
             var properties = obj.GetType().GetProperties(BindingFlags.Instance|BindingFlags.Public|BindingFlags.SetProperty|BindingFlags.GetProperty).Where(a=>!a.GetMethod!.IsVirtual).Select(a=>new {prop = a,injAttr = a.GetCustomAttribute<InjAttribute>() }).Where(a=>a.injAttr!=null && ((a.injAttr is not KeyedAttribute) && HasInjected(a.prop.PropertyType) || (a.injAttr is KeyedAttribute keyed) && HasKeyedInjected(a.prop.PropertyType, keyed.Key) ));
 
             foreach (var propinfo in properties)
@@ -172,25 +148,34 @@ namespace LegendaryDependencyInjection
                 }
                 if (propinfo.injAttr is not KeyedAttribute keyed)
                 {
-                    prop.SetValue(obj, GetServiceInProvider(prop.PropertyType));
+                    prop.SetValue(obj, sp.GetService(prop.PropertyType));
                     continue;
                 }
-                prop.SetValue(obj, GetKeyedServiceInProvider(prop.PropertyType,keyed.Key));
+                object? keyedService;
+                if(sp is IKeyedServiceProvider keyedSp)
+                {
+                    keyedService = keyedSp.GetKeyedService(prop.PropertyType, keyed.Key);
+                }
+                else
+                {
+                    keyedService = sp.GetKeyedServices(prop.PropertyType, keyed.Key).LastOrDefault();
+                }
+                prop.SetValue(obj, keyedService);
             }
             return obj;
         }
         /// <summary>
         /// 类型映射缓存
         /// </summary>
-        private readonly ConcurrentDictionary<Type, Type> _dic = new ConcurrentDictionary<Type, Type>();
+        private static readonly ConcurrentDictionary<Type, Type> _dic = new ConcurrentDictionary<Type, Type>();
         /// <summary>
         /// 获取目标类型的代理类型依赖
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public T GetService<T>() where T : class
+        public T GetService<T>(IServiceProvider sp) where T : class
         {
-            return (T)GetService(typeof(T));
+            return (T)GetService(sp,typeof(T));
         }
         /// <summary>
         /// 获取目标类型的代理类型依赖，不存在就创建代理类
@@ -199,10 +184,10 @@ namespace LegendaryDependencyInjection
         /// <returns></returns>
         /// <exception cref="InvalidOperationException"></exception>
         /// <exception cref="ArgumentException"></exception>
-        public object GetService(Type type,object? keyed=null)
+        public object GetService(IServiceProvider sp,Type type,object? keyed=null)
         {
             var resType = _dic.GetOrAdd(type, getType);
-            return Create(resType);
+            return Create(sp,resType);
         }
         private Type getType(Type type)
         {
@@ -233,6 +218,9 @@ namespace LegendaryDependencyInjection
             }
             //定义一个代理类型建造器
             TypeBuilder builder = _module.DefineType($"{type.Name}_Lazy_{Guid.NewGuid()}", TypeAttributes.Public, type);
+
+            var fieldProvider =  builder.DefineField("legendaryServiceProvider",typeof(IServiceProvider),FieldAttributes.Private|FieldAttributes.SpecialName);
+
             //循环所有属性，把属性getter方法改造为如果属性为空，就自动注入依赖，并把依赖赋值给属性
             foreach (var propinfo in props)
             {
@@ -248,6 +236,8 @@ namespace LegendaryDependencyInjection
                 var keyed = propinfo.keyed;
                 if (keyed == null)
                 {
+                    il.Emit(OpCodes.Ldarg_0);
+                    il.Emit(OpCodes.Ldfld, fieldProvider);
                     il.Emit(OpCodes.Call, _getServiceMethod.MakeGenericMethod(prop.PropertyType));
                 }
                 else
@@ -256,6 +246,9 @@ namespace LegendaryDependencyInjection
                     //writeLine.Invoke(null, ["生成了writeline"]);
                     //il.Emit(OpCodes.Ldstr, "准备调用获取属性");
                     //il.Emit(OpCodes.Call, writeLine);
+                    il.Emit(OpCodes.Ldarg_0);
+                    il.Emit(OpCodes.Ldfld, fieldProvider);
+
                     il.Emit(OpCodes.Ldarg_0);
                     il.Emit(OpCodes.Call, _getTypeMethod);
                     il.Emit(OpCodes.Ldstr, prop.Name);
@@ -282,13 +275,17 @@ namespace LegendaryDependencyInjection
             //重写所有构造函数，模仿目标类型
             foreach (var constructor in constructors)
             {
-                Type[] types = constructor.GetParameters().Select(a => a.ParameterType).ToArray();
+                Type[] types = constructor.GetParameters().Select(a => a.ParameterType).Concat(new[] { typeof(IServiceProvider) }).ToArray();
                 ConstructorBuilder constructorBuilder = builder.DefineConstructor(constructor.Attributes, constructor.CallingConvention, types);
                 ILGenerator il = constructorBuilder.GetILGenerator();
 
                 il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldarg,types.Length);
+                il.Emit(OpCodes.Stfld, fieldProvider);
+
+                il.Emit(OpCodes.Ldarg_0);
                 int index = 0;
-                types.ToList().ForEach(t => {
+                types.Take(types.Length-1).ToList().ForEach(t => {
                     il.Emit(OpCodes.Ldarg, ++index);
                 });
                 il.Emit(OpCodes.Call, constructor);

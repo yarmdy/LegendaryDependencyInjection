@@ -8,10 +8,9 @@ namespace LegendaryDependencyInjection
     /// </summary>
     public static class LegendaryDependencyInjectorExtensions
     {
-        public static IServiceCollection AddLegendaryDependencyInjector<TServiceProviderAccessor>(this IServiceCollection services) where TServiceProviderAccessor : class, IServiceProviderAccessor
+        public static IServiceCollection AddLegendaryDependencyInjector(this IServiceCollection services) 
         {
             services.TryAddSingleton<LegendaryDependencyInjector>();
-            services.TryAddSingleton<IServiceProviderAccessor,TServiceProviderAccessor>();
             return services;
         }
         /// <summary>
@@ -31,7 +30,7 @@ namespace LegendaryDependencyInjection
         /// <returns></returns>
         private static object GetService(IServiceProvider sp, Type implementation)
         {
-            return GetLegendaryDependencyInjector(sp).GetService(implementation);
+            return GetLegendaryDependencyInjector(sp).GetService(sp,implementation);
         }
         /// <summary>
         /// 注入延迟生命周期类型

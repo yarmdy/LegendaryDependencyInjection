@@ -14,8 +14,7 @@ namespace LegendaryDependencyInjection.Extensions.AspNet
         /// <returns></returns>
         public static IMvcBuilder AddLegendaryDependencyInjector(this IMvcBuilder builder)
         {
-            builder.Services.TryAdd(ServiceDescriptor.Singleton<IHttpContextAccessor, HttpContextAccessor>());
-            builder.Services.AddLegendaryDependencyInjector<HttpContextServiceProviderAccessor>();
+            builder.Services.AddLegendaryDependencyInjector();
             ControllerFeature feature = new ControllerFeature();
             builder.PartManager.PopulateFeature(feature);
 
@@ -44,7 +43,7 @@ namespace LegendaryDependencyInjection.Extensions.AspNet
         /// <returns></returns>
         private static object GetService(IServiceProvider sp, Type implementation)
         {
-            return GetLegendaryDependencyInjector(sp).GetService(implementation);
+            return GetLegendaryDependencyInjector(sp).GetService(sp,implementation);
         }
     }
 }
