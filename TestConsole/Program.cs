@@ -27,10 +27,6 @@ Console.WriteLine(lazys.DefaultLazyClass.Name);
 
 public class LazyServices
 {
-    public LazyServices()
-    {
-
-    }
     public virtual ILazyClass LazyClass { get; set; } = default!;
     [Keyed("first")]
     public virtual ILazyClass FirstLazyClass { get; set; } = default!;
