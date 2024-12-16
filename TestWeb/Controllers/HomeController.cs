@@ -9,11 +9,11 @@ namespace TestWeb.Controllers
     public class HomeController : Controller
     {
         [Inj]
-        public virtual IEnumerable<ILazyClass> LazyClasses { get; set; } = default!;
+        protected IEnumerable<ILazyClass> LazyClasses { get; set; } = default!;
 
         private ILazyClass? _defaultLazy { get; set; } = null;
         [Keyed("def")]
-        public virtual ILazyClass DefaultLazy {
+        protected virtual ILazyClass DefaultLazy {
             get
             {
                 return _defaultLazy!;
@@ -24,11 +24,11 @@ namespace TestWeb.Controllers
             }
         }
         [Keyed("fst")]
-        public virtual ILazyClass FirstLazy { get; set; } = default!;
+        protected virtual ILazyClass FirstLazy { get; set; } = default!;
 
         private IDelayFactory<ILazyClass> _delayClass { get; set; } = default!;
         [Inj]
-        public virtual  IServiceProvider Services { get; set; } = default!;
+        protected virtual  IServiceProvider Services { get; set; } = default!;
 
         public HomeController(IDelayFactory<ILazyClass> delayClass) 
         {

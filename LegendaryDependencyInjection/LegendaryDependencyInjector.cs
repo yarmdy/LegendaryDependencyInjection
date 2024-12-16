@@ -137,7 +137,7 @@ namespace LegendaryDependencyInjection
             //}
             //throw new NotImplementedException();
             var obj = ActivatorUtilities.CreateInstance(sp, type);
-            var properties = obj.GetType().GetProperties(BindingFlags.Instance|BindingFlags.Public|BindingFlags.SetProperty|BindingFlags.GetProperty).Where(a=>!a.GetMethod!.IsVirtual).Select(a=>new {prop = a,injAttr = a.GetCustomAttribute<InjAttribute>() }).Where(a=>a.injAttr!=null && ((a.injAttr is not KeyedAttribute) && HasInjected(a.prop.PropertyType) || (a.injAttr is KeyedAttribute keyed) && HasKeyedInjected(a.prop.PropertyType, keyed.Key) ));
+            var properties = obj.GetType().GetProperties(BindingFlags.Instance|BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.SetProperty|BindingFlags.GetProperty).Where(a=>!a.GetMethod!.IsVirtual).Select(a=>new {prop = a,injAttr = a.GetCustomAttribute<InjAttribute>() }).Where(a=>a.injAttr!=null && ((a.injAttr is not KeyedAttribute) && HasInjected(a.prop.PropertyType) || (a.injAttr is KeyedAttribute keyed) && HasKeyedInjected(a.prop.PropertyType, keyed.Key) ));
 
             foreach (var propinfo in properties)
             {
@@ -207,7 +207,7 @@ namespace LegendaryDependencyInjection
                 return type;
             }
             //获取目标类型所有依赖和虚属性
-            IEnumerable<(PropertyInfo prop, KeyedAttribute? keyed)> props = type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.SetProperty | BindingFlags.GetProperty)
+            IEnumerable<(PropertyInfo prop, KeyedAttribute? keyed)> props = type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.SetProperty | BindingFlags.GetProperty)
                 .Where(a => (a.PropertyType.IsClass || a.PropertyType.IsInterface) && a.GetMethod!.IsVirtual)
                 .Select(a => new { prop = a, keyed = a.GetCustomAttribute<KeyedAttribute>() })
                 .Where(a=>a.keyed==null && HasInjected(a.prop.PropertyType) || a.keyed!=null && HasKeyedInjected(a.prop.PropertyType,a.keyed.Key)).Select(a=>(a.prop, a.keyed));
@@ -228,7 +228,7 @@ namespace LegendaryDependencyInjection
                 MethodBuilder methodBuilder = builder.DefineMethod($"get_{prop.Name}", MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.Virtual, prop.PropertyType, Type.EmptyTypes);
                 ILGenerator il = methodBuilder.GetILGenerator();
                 il.Emit(OpCodes.Ldarg_0);
-                il.Emit(OpCodes.Call, prop.GetGetMethod()!);
+                il.Emit(OpCodes.Call, prop.GetGetMethod(true)!);
                 il.Emit(OpCodes.Dup);
                 Label over = il.DefineLabel();
                 il.Emit(OpCodes.Brtrue, over);
@@ -262,7 +262,7 @@ namespace LegendaryDependencyInjection
                 il.Emit(OpCodes.Stloc_0);
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldloc_0);
-                il.Emit(OpCodes.Call, prop.GetSetMethod()!);
+                il.Emit(OpCodes.Call, prop.GetSetMethod(true)!);
                 il.Emit(OpCodes.Ldloc_0);
 
                 il.MarkLabel(over);

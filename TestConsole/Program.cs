@@ -14,9 +14,7 @@ var scope = sp.CreateScope();
 
 var lazys = scope.ServiceProvider.GetRequiredService<LazyServices>();
 
-Console.WriteLine(lazys.LazyClass.Name);
-Console.WriteLine(lazys.FirstLazyClass.Name);
-Console.WriteLine(lazys.DefaultLazyClass.Name);
+lazys.Bark();
 
 
 
@@ -27,11 +25,18 @@ Console.WriteLine(lazys.DefaultLazyClass.Name);
 
 public class LazyServices
 {
-    public virtual ILazyClass LazyClass { get; set; } = default!;
+    protected virtual ILazyClass LazyClass { get; set; } = default!;
     [Keyed("first")]
-    public virtual ILazyClass FirstLazyClass { get; set; } = default!;
+    protected virtual ILazyClass FirstLazyClass { get; set; } = default!;
     [Keyed("default")]
-    public virtual ILazyClass DefaultLazyClass { get; set; } = default!;
+    protected virtual ILazyClass DefaultLazyClass { get; set; } = default!;
+
+    public void Bark()
+    {
+        Console.WriteLine(LazyClass.Name);
+        Console.WriteLine(FirstLazyClass.Name);
+        Console.WriteLine(DefaultLazyClass.Name);
+    }
 }
 public interface ILazyClass
 {
