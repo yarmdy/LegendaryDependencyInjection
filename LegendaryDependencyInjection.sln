@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestWeb", "TestWeb\TestWeb.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LegendaryDependencyInjection.Extensions.AspNet", "LegendaryDependencyInjection.Extensions.AspNet\LegendaryDependencyInjection.Extensions.AspNet.csproj", "{DBF533D1-986E-46D1-8E53-FF5F0B59E98C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestConsole", "TestConsole\TestConsole.csproj", "{18271002-C81B-4CFC-A0F9-2FCCC11FB2DE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestConsole", "TestConsole\TestConsole.csproj", "{18271002-C81B-4CFC-A0F9-2FCCC11FB2DE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

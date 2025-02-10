@@ -1,5 +1,6 @@
 using LegendaryDependencyInjection;
 using LegendaryDependencyInjection.Extensions.AspNet;
+using Microsoft.AspNetCore.Razor.TagHelpers;
 using System.Text.Encodings.Web;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,7 +10,6 @@ builder.Services.AddLazyScoped<ILazyClass, FirstLazyClass>();
 builder.Services.AddLazyKeyedScoped<ILazyClass, DefaultLazyClass>("def");
 builder.Services.AddLazyKeyedScoped<ILazyClass, FirstLazyClass>("fst");
 builder.Services.AddScoped(typeof(IDelayFactory<>),typeof(DelayFactory<>));
-
 // Add services to the container.
 builder.Services.AddMvc().AddJsonOptions(op =>
 {
@@ -18,11 +18,10 @@ builder.Services.AddMvc().AddJsonOptions(op =>
     opp.PropertyNamingPolicy = null;
     opp.Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
 }).AddLegendaryDependencyInjector();
-
 var app = builder.Build();
 app.UseRouting();
-
 app.MapControllers();
+app.MapRazorPages();
 app.Run();
 
 
@@ -60,4 +59,17 @@ public class DelayFactory<T> : IDelayFactory<T>
         serviceProvider = sp;
     }
     public T Service => _service ??= (T)serviceProvider.GetRequiredService(typeof(T));
+}
+
+public class LDButton : TagHelper
+{
+    protected virtual ILazyClass LazyClass { get; set; } = default!;
+    public override Task ProcessAsync(TagHelperContext context, TagHelperOutput output)
+    {
+        output.TagName = "button";
+        output.Attributes.SetAttribute("type","button");
+        output.Attributes.SetAttribute("class","legendary-btn");
+        output.Attributes.SetAttribute("lazy", LazyClass.Name);
+        return Task.CompletedTask;
+    }
 }
