@@ -1,5 +1,6 @@
 using LegendaryDependencyInjection;
 using LegendaryDependencyInjection.Extensions.AspNet;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Razor.TagHelpers;
 using System.Text.Encodings.Web;
 
@@ -71,5 +72,16 @@ public class LDButton : TagHelper
         output.Attributes.SetAttribute("class","legendary-btn");
         output.Attributes.SetAttribute("lazy", LazyClass.Name);
         return Task.CompletedTask;
+    }
+}
+
+public class LDView : ViewComponent
+{
+    protected virtual ILazyClass LazyClass { get; set;  }=default!;
+    public IViewComponentResult Invoke(string name)
+    {
+        return Content($"""
+            <h1 name="{name}">{LazyClass.Name}</h1>
+            """);
     }
 }

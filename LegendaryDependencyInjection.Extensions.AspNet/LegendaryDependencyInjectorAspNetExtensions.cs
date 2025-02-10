@@ -1,9 +1,11 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Razor;
 using Microsoft.AspNetCore.Mvc.Razor.Compilation;
 using Microsoft.AspNetCore.Mvc.Razor.TagHelpers;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc.ViewComponents;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -22,6 +24,7 @@ namespace LegendaryDependencyInjection.Extensions.AspNet
             builder.AddLegendaryDependencyInjectorControllers();
             builder.AddLegendaryDependencyInjectorTagHelpers();
             builder.AddLegendaryDependencyInjectorPageModels();
+            builder.AddLegendaryDependencyInjectorViewComponents();
             return builder;
         }
         public static IMvcBuilder AddLegendaryDependencyInjectorControllers(this IMvcBuilder builder)
@@ -64,6 +67,20 @@ namespace LegendaryDependencyInjection.Extensions.AspNet
             }
 
             builder.Services.Replace(ServiceDescriptor.Transient<IPageModelActivatorProvider, ServicePageModelActivatorProvider>());
+            return builder;
+        }
+        public static IMvcBuilder AddLegendaryDependencyInjectorViewComponents(this IMvcBuilder builder)
+        {
+            builder.Services.AddLegendaryDependencyInjector();
+            ViewComponentFeature feature = new ViewComponentFeature();
+            builder.PartManager.PopulateFeature(feature);
+
+            foreach (Type viewComponent in feature.ViewComponents.Select(a=>a.AsType()))
+            {
+                builder.Services.AddLazyTransient(viewComponent);
+            }
+
+            builder.Services.Replace(ServiceDescriptor.Transient<IViewComponentActivator, ServiceBasedViewComponentActivator>());
             return builder;
         }
     }
