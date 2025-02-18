@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.ViewComponents;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure;
 
 namespace LegendaryDependencyInjection.Extensions.AspNet
 {
@@ -66,7 +67,7 @@ namespace LegendaryDependencyInjection.Extensions.AspNet
                 builder.Services.AddLazyTransient(view.Type!.GetProperty("Model")!.PropertyType);
             }
 
-            builder.Services.Replace(ServiceDescriptor.Transient<IPageModelActivatorProvider, ServicePageModelActivatorProvider>());
+            builder.Services.Replace(ServiceDescriptor.Transient<IPageModelActivatorProvider, ServiceBasedPageModelActivatorProvider>());
             return builder;
         }
         public static IMvcBuilder AddLegendaryDependencyInjectorViewComponents(this IMvcBuilder builder)
