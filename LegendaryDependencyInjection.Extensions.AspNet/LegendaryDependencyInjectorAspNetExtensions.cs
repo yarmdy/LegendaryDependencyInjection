@@ -62,9 +62,9 @@ namespace LegendaryDependencyInjection.Extensions.AspNet
             ViewsFeature feature = new ViewsFeature();
             builder.PartManager.PopulateFeature(feature);
 
-            foreach (CompiledViewDescriptor view in feature.ViewDescriptors)
+            foreach (Type type in feature.ViewDescriptors.Select(v=> v.Type!.GetProperty("Model")!.PropertyType!).Where(t=>t.IsAssignableTo(typeof(PageModel))))
             {
-                builder.Services.AddLazyTransient(view.Type!.GetProperty("Model")!.PropertyType);
+                builder.Services.AddLazyTransient(type);
             }
 
             builder.Services.Replace(ServiceDescriptor.Transient<IPageModelActivatorProvider, ServiceBasedPageModelActivatorProvider>());
